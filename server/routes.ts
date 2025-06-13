@@ -1,0 +1,402 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertUserSchema, insertProjectSchema, insertLeadSchema, insertQuoteSchema, insertReviewSchema, insertMessageSchema } from "@shared/schema";
+import bcrypt from "bcrypt";
+import session from "express-session";
+import { z } from "zod";
+
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      email: string;
+      userType: string;
+    }
+  }
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Session configuration
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+  }));
+
+  // Auth middleware
+  const requireAuth = (req: any, res: any, next: any) => {
+    if (req.session?.user) {
+      req.user = req.session.user;
+      next();
+    } else {
+      res.status(401).json({ message: "Authentication required" });
+    }
+  };
+
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword,
+      });
+
+      req.session!.user = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        userType: user.userType,
+      };
+
+      res.json({ user: req.session!.user });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      req.session!.user = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        userType: user.userType,
+      };
+
+      res.json({ user: req.session!.user });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session!.destroy(() => {
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    if (req.session?.user) {
+      res.json({ user: req.session.user });
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  // Project routes
+  app.get("/api/projects", async (req, res) => {
+    try {
+      const projects = await storage.getActiveProjects();
+      res.json(projects);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/projects/my", requireAuth, async (req, res) => {
+    try {
+      const projects = await storage.getProjectsByHomeowner(req.user!.id);
+      res.json(projects);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/projects/:id", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      res.json(project);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/projects", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'homeowner') {
+        return res.status(403).json({ message: "Only homeowners can create projects" });
+      }
+
+      const validatedData = insertProjectSchema.parse({
+        ...req.body,
+        homeownerId: req.user!.id,
+      });
+      
+      const project = await storage.createProject(validatedData);
+      res.json(project);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/projects/:id", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      if (project.homeownerId !== req.user!.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const updates = req.body;
+      const updatedProject = await storage.updateProject(projectId, updates);
+      res.json(updatedProject);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Lead routes
+  app.get("/api/leads/my", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can view leads" });
+      }
+
+      const leads = await storage.getLeadsByServiceProvider(req.user!.id);
+      
+      // Enhance leads with project information
+      const enhancedLeads = await Promise.all(
+        leads.map(async (lead) => {
+          const project = await storage.getProject(lead.projectId);
+          return { ...lead, project };
+        })
+      );
+
+      res.json(enhancedLeads);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/leads", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can purchase leads" });
+      }
+
+      const validatedData = insertLeadSchema.parse({
+        ...req.body,
+        serviceProviderId: req.user!.id,
+      });
+      
+      const lead = await storage.createLead(validatedData);
+      res.json(lead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/leads/:id", requireAuth, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const lead = await storage.getLead(leadId);
+      
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+
+      if (lead.serviceProviderId !== req.user!.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const updates = req.body;
+      
+      // Auto-set timestamps based on status changes
+      if (updates.status === 'contacted' && !lead.contactedAt) {
+        updates.contactedAt = new Date();
+      } else if (updates.status === 'quoted' && !lead.quotedAt) {
+        updates.quotedAt = new Date();
+      } else if (updates.status === 'won' && !lead.wonAt) {
+        updates.wonAt = new Date();
+      }
+      
+      const updatedLead = await storage.updateLead(leadId, updates);
+      res.json(updatedLead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Quote routes
+  app.get("/api/quotes/project/:projectId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const quotes = await storage.getQuotesByProject(projectId);
+      res.json(quotes);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/quotes", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can create quotes" });
+      }
+
+      const validatedData = insertQuoteSchema.parse({
+        ...req.body,
+        serviceProviderId: req.user!.id,
+      });
+      
+      const quote = await storage.createQuote(validatedData);
+      res.json(quote);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Analytics routes
+  app.get("/api/analytics/stats", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can view analytics" });
+      }
+
+      const stats = await storage.getServiceProviderStats(req.user!.id);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Review routes
+  app.post("/api/reviews", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'homeowner') {
+        return res.status(403).json({ message: "Only homeowners can create reviews" });
+      }
+
+      const validatedData = insertReviewSchema.parse({
+        ...req.body,
+        homeownerId: req.user!.id,
+      });
+      
+      const review = await storage.createReview(validatedData);
+      res.json(review);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Message routes
+  app.get("/api/messages/project/:projectId", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const messages = await storage.getMessagesByProject(projectId);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/messages", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertMessageSchema.parse({
+        ...req.body,
+        senderId: req.user!.id,
+      });
+      
+      const message = await storage.createMessage(validatedData);
+      res.json(message);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Service categories endpoint
+  app.get("/api/service-categories", (req, res) => {
+    const categories = [
+      {
+        id: 1,
+        name: "House Painting",
+        description: "Interior and exterior painting services",
+        basePrice: 25,
+        prosAvailable: 1247,
+        image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+      },
+      {
+        id: 2,
+        name: "Basement Remodeling",
+        description: "Complete basement renovation services",
+        basePrice: 45,
+        prosAvailable: 892,
+        image: "https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+      },
+      {
+        id: 3,
+        name: "Kitchen Renovation",
+        description: "Full kitchen remodeling and design",
+        basePrice: 65,
+        prosAvailable: 634,
+        image: "https://images.unsplash.com/photo-1556912173-3bb406ef7e77?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+      },
+      {
+        id: 4,
+        name: "Plumbing Services",
+        description: "Installation, repair, and maintenance",
+        basePrice: 18,
+        prosAvailable: 1543,
+        image: "https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+      },
+      {
+        id: 5,
+        name: "Electrical Work",
+        description: "Licensed electrical installation and repair",
+        basePrice: 32,
+        prosAvailable: 987,
+        image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+      },
+      {
+        id: 6,
+        name: "Landscaping",
+        description: "Garden design and outdoor maintenance",
+        basePrice: 22,
+        prosAvailable: 756,
+        image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+      }
+    ];
+    res.json(categories);
+  });
+
+  const httpServer = createServer(app);
+
+  return httpServer;
+}
