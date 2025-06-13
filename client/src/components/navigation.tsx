@@ -21,7 +21,7 @@ export default function Navigation() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <Hammer className="text-primary text-2xl mr-2" />
-              <span className="text-xl font-bold text-neutral-800">LeadCraft</span>
+              <span className="text-xl font-bold text-neutral-800">TaskNab</span>
             </Link>
             <div className="hidden md:block ml-10">
               <div className="flex items-baseline space-x-8">
