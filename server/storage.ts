@@ -31,6 +31,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
+  getEligibleContractors(category: string, zipCode: string, budget: string): Promise<User[]>;
   
   // Project methods
   getProject(id: number): Promise<Project | undefined>;
@@ -305,6 +306,49 @@ export class DatabaseStorage implements IStorage {
       conversionRate: Number(conversionRate.toFixed(2)),
       avgLeadValue: Number(avgLeadValue.toFixed(2)),
     };
+  }
+
+  async getEligibleContractors(category: string, zipCode: string, budget: string): Promise<User[]> {
+    const contractors = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.userType, 'service_provider'),
+          eq(users.autoLeadPurchase, true),
+          sql`${users.preferredCategories} @> ARRAY[${category}]`
+        )
+      );
+
+    // Filter by service radius and budget preferences
+    return contractors.filter(contractor => {
+      // Simple zip code radius check (in production, use proper geolocation)
+      const contractorZip = contractor.zipCode;
+      if (contractorZip && Math.abs(parseInt(contractorZip) - parseInt(zipCode)) > 1000) {
+        return false;
+      }
+
+      // Check budget preferences
+      if (contractor.maxLeadBudget) {
+        const maxBudget = parseFloat(contractor.maxLeadBudget);
+        const projectBudgetValue = this.getBudgetValue(budget);
+        if (projectBudgetValue > maxBudget) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  private getBudgetValue(budget: string): number {
+    // Convert budget string to numeric value for comparison
+    if (budget?.includes('over-25000')) return 30000;
+    if (budget?.includes('10000-25000')) return 17500;
+    if (budget?.includes('5000-10000')) return 7500;
+    if (budget?.includes('1000-5000')) return 3000;
+    if (budget?.includes('under-1000')) return 500;
+    return 5000; // default
   }
 }
 

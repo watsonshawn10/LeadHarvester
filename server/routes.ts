@@ -26,6 +26,132 @@ if (process.env.STRIPE_SECRET_KEY) {
   });
 }
 
+// Helper function to calculate lead price
+function calculateLeadPrice(category: string, budget?: string, urgency?: string): number {
+  let basePrice = 25; // Default base price
+  
+  // Adjust price based on category
+  switch (category) {
+    case 'kitchen-renovation':
+      basePrice = 65;
+      break;
+    case 'basement-remodeling':
+      basePrice = 45;
+      break;
+    case 'electrical':
+      basePrice = 32;
+      break;
+    case 'plumbing':
+      basePrice = 18;
+      break;
+    case 'landscaping':
+      basePrice = 22;
+      break;
+    default:
+      basePrice = 25;
+  }
+
+  // Adjust price based on budget
+  if (budget) {
+    if (budget.includes('over-25000')) {
+      basePrice *= 2.5;
+    } else if (budget.includes('10000-25000')) {
+      basePrice *= 2;
+    } else if (budget.includes('5000-10000')) {
+      basePrice *= 1.5;
+    }
+  }
+
+  // Adjust price based on urgency
+  if (urgency === 'asap') {
+    basePrice *= 1.5;
+  } else if (urgency === 'within-week') {
+    basePrice *= 1.2;
+  }
+
+  return Math.round(basePrice);
+}
+
+// Automatic lead distribution function
+async function distributeLeadsAutomatically(project: any) {
+  if (!stripe) {
+    console.log('Stripe not configured, skipping automatic lead distribution');
+    return;
+  }
+
+  try {
+    // Get eligible contractors
+    const eligibleContractors = await storage.getEligibleContractors(
+      project.category, 
+      project.zipCode, 
+      project.budget || ''
+    );
+
+    // Limit to top 3-4 contractors (sorted by rating)
+    const selectedContractors = eligibleContractors
+      .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
+      .slice(0, 4);
+
+    const leadPrice = calculateLeadPrice(project.category, project.budget, project.urgency);
+
+    // Process each contractor
+    for (const contractor of selectedContractors) {
+      try {
+        // Check if contractor has sufficient credits or payment method
+        if (!contractor.stripeCustomerId || !contractor.stripePaymentMethodId) {
+          console.log(`Skipping contractor ${contractor.id} - no payment method`);
+          continue;
+        }
+
+        // Check if contractor has sufficient lead credits
+        const contractorCredits = parseFloat(contractor.leadCredits || '0');
+        if (contractorCredits >= leadPrice) {
+          // Deduct from credits
+          await storage.updateUser(contractor.id, {
+            leadCredits: (contractorCredits - leadPrice).toString()
+          });
+        } else {
+          // Charge via Stripe
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: leadPrice * 100, // Convert to cents
+            currency: 'usd',
+            customer: contractor.stripeCustomerId,
+            payment_method: contractor.stripePaymentMethodId,
+            confirm: true,
+            return_url: 'https://your-domain.com/return',
+            metadata: {
+              contractorId: contractor.id.toString(),
+              projectId: project.id.toString(),
+              leadPrice: leadPrice.toString(),
+            },
+          });
+
+          if (paymentIntent.status !== 'succeeded') {
+            console.log(`Payment failed for contractor ${contractor.id}`);
+            continue;
+          }
+        }
+
+        // Create the lead
+        await storage.createLead({
+          projectId: project.id,
+          serviceProviderId: contractor.id,
+          price: leadPrice.toString(),
+          status: 'new',
+          isAutoPurchased: true,
+          stripePaymentIntentId: contractorCredits >= leadPrice ? null : paymentIntent?.id,
+        });
+
+        console.log(`Lead automatically distributed to contractor ${contractor.id} for project ${project.id}`);
+      } catch (error) {
+        console.error(`Failed to process contractor ${contractor.id}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('Error in automatic lead distribution:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Session configuration
   app.use(session({
@@ -164,6 +290,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const project = await storage.createProject(validatedData);
+
+      // Automatically distribute leads to eligible contractors
+      distributeLeadsAutomatically(project);
+
       res.json(project);
     } catch (error: any) {
       res.status(400).json({ message: error.message });

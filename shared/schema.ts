@@ -25,6 +25,13 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").default(false),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
   totalReviews: integer("total_reviews").default(0),
+  autoLeadPurchase: boolean("auto_lead_purchase").default(false),
+  maxLeadBudget: decimal("max_lead_budget", { precision: 10, scale: 2 }),
+  preferredCategories: text("preferred_categories").array(),
+  serviceRadius: integer("service_radius").default(25), // miles
+  stripeCustomerId: text("stripe_customer_id"),
+  stripePaymentMethodId: text("stripe_payment_method_id"),
+  leadCredits: decimal("lead_credits", { precision: 10, scale: 2 }).default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -56,6 +63,8 @@ export const leads = pgTable("leads", {
   wonAt: timestamp("won_at"),
   revenue: decimal("revenue", { precision: 10, scale: 2 }),
   notes: text("notes"),
+  isAutoPurchased: boolean("is_auto_purchased").default(false),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
