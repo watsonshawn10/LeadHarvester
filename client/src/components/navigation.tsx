@@ -52,6 +52,13 @@ export default function Navigation() {
                     Dashboard
                   </Button>
                 </Link>
+                {user.userType === 'service_provider' && (
+                  <Link href="/lead-marketplace">
+                    <Button variant="ghost" className="text-neutral-600 hover:text-primary">
+                      Find Leads
+                    </Button>
+                  </Link>
+                )}
                 <Button onClick={handleLogout} variant="ghost" className="text-neutral-600 hover:text-primary">
                   Sign Out
                 </Button>

@@ -5,6 +5,7 @@ import { insertUserSchema, insertProjectSchema, insertLeadSchema, insertQuoteSch
 import bcrypt from "bcrypt";
 import session from "express-session";
 import { z } from "zod";
+import Stripe from "stripe";
 
 declare global {
   namespace Express {
@@ -15,6 +16,14 @@ declare global {
       userType: string;
     }
   }
+}
+
+// Initialize Stripe
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-05-28.basil",
+  });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -338,6 +347,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(message);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Stripe payment routes
+  app.post("/api/create-payment-intent", requireAuth, async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe not configured. Please add STRIPE_SECRET_KEY to environment variables." });
+      }
+
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can purchase leads" });
+      }
+
+      const { amount, leadId } = req.body;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: "usd",
+        metadata: {
+          userId: req.user!.id.toString(),
+          leadId: leadId?.toString() || '',
+        },
+      });
+
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Lead purchase endpoint
+  app.post("/api/purchase-lead", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can purchase leads" });
+      }
+
+      const { projectId, amount } = req.body;
+
+      // Check if project exists and is active
+      const project = await storage.getProject(projectId);
+      if (!project || project.status !== 'active') {
+        return res.status(400).json({ message: "Project not available" });
+      }
+
+      // Check if user already has a lead for this project
+      const existingLeads = await storage.getLeadsByProject(projectId);
+      const userHasLead = existingLeads.some(lead => lead.serviceProviderId === req.user!.id);
+      
+      if (userHasLead) {
+        return res.status(400).json({ message: "You already have access to this lead" });
+      }
+
+      // Create the lead
+      const lead = await storage.createLead({
+        projectId,
+        serviceProviderId: req.user!.id,
+        price: amount,
+        status: 'new',
+      });
+
+      res.json(lead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Get available leads for purchase
+  app.get("/api/available-leads", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can view available leads" });
+      }
+
+      const projects = await storage.getActiveProjects();
+      
+      // Filter out projects where user already has leads
+      const userLeads = await storage.getLeadsByServiceProvider(req.user!.id);
+      const userProjectIds = new Set(userLeads.map(lead => lead.projectId));
+      
+      const availableProjects = projects.filter(project => 
+        !userProjectIds.has(project.id) && project.homeownerId !== req.user!.id
+      );
+
+      // Calculate lead prices based on project scope and category
+      const leadsWithPricing = availableProjects.map(project => {
+        let basePrice = 25; // Default base price
+        
+        // Adjust price based on category
+        switch (project.category) {
+          case 'kitchen-renovation':
+            basePrice = 65;
+            break;
+          case 'basement-remodeling':
+            basePrice = 45;
+            break;
+          case 'electrical':
+            basePrice = 32;
+            break;
+          case 'plumbing':
+            basePrice = 18;
+            break;
+          case 'landscaping':
+            basePrice = 22;
+            break;
+          default:
+            basePrice = 25;
+        }
+
+        // Adjust price based on budget
+        if (project.budget) {
+          if (project.budget.includes('over-25000')) {
+            basePrice *= 2.5;
+          } else if (project.budget.includes('10000-25000')) {
+            basePrice *= 2;
+          } else if (project.budget.includes('5000-10000')) {
+            basePrice *= 1.5;
+          }
+        }
+
+        // Adjust price based on urgency
+        if (project.urgency === 'asap') {
+          basePrice *= 1.5;
+        } else if (project.urgency === 'within-week') {
+          basePrice *= 1.2;
+        }
+
+        return {
+          ...project,
+          leadPrice: Math.round(basePrice),
+        };
+      });
+
+      res.json(leadsWithPricing);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
