@@ -112,6 +112,13 @@ export default function Navigation() {
                       Dashboard
                     </span>
                   </Link>
+                  {user.userType === 'service_provider' && (
+                    <Link href="/lead-marketplace">
+                      <span className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium cursor-pointer">
+                        Find Leads
+                      </span>
+                    </Link>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium w-full text-left"
