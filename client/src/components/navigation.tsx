@@ -52,6 +52,11 @@ export default function Navigation() {
                     Dashboard
                   </Button>
                 </Link>
+                <Link href="/scheduler">
+                  <Button variant="ghost" className="text-neutral-600 hover:text-primary">
+                    Schedule
+                  </Button>
+                </Link>
                 {user.userType === 'service_provider' && (
                   <>
                     <Link href="/lead-marketplace">
@@ -62,6 +67,11 @@ export default function Navigation() {
                     <Link href="/contractor-settings">
                       <Button variant="ghost" className="text-neutral-600 hover:text-primary">
                         Settings
+                      </Button>
+                    </Link>
+                    <Link href="/scheduler">
+                      <Button variant="ghost" className="text-neutral-600 hover:text-primary">
+                        Schedule
                       </Button>
                     </Link>
                   </>

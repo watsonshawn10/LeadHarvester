@@ -1,0 +1,117 @@
+{
+  "name": "TaskNab - Home Improvement Marketplace",
+  "short_name": "TaskNab",
+  "description": "Connect homeowners with trusted home improvement professionals. Find quality leads for your business or get quotes from verified contractors.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "orientation": "portrait-primary",
+  "categories": ["business", "utilities", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-96.png", 
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-128.png",
+      "sizes": "128x128", 
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Home screen showing service categories"
+    },
+    {
+      "src": "/screenshot-mobile-2.png", 
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Contractor dashboard with leads"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find Leads",
+      "short_name": "Leads",
+      "description": "Browse available home improvement leads",
+      "url": "/lead-marketplace",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Schedule",
+      "short_name": "Calendar", 
+      "description": "View and manage appointments",
+      "url": "/scheduler",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your projects and business metrics",
+      "url": "/business-dashboard",
+      "icons": [
+        {
+          "src": "/icon-192.png", 
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

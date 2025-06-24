@@ -949,6 +949,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Scheduling endpoints
+  app.get('/api/appointments', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    try {
+      const appointments = await storage.getAppointmentsByUser(req.user!.id);
+      res.json(appointments);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/appointments', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    try {
+      const appointmentData = req.body;
+      appointmentData.homeownerId = req.user!.id;
+      
+      const appointment = await storage.createAppointment(appointmentData);
+      res.json(appointment);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/appointments/:id', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    try {
+      const appointmentId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const appointment = await storage.updateAppointment(appointmentId, updates);
+      res.json(appointment);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/contractors', async (req, res) => {
+    try {
+      const contractors = await storage.getAllContractors();
+      res.json(contractors);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/available-slots/:contractorId', async (req, res) => {
+    try {
+      const contractorId = parseInt(req.params.contractorId);
+      const date = req.query.date as string;
+      
+      if (!date) {
+        return res.status(400).json({ message: 'Date parameter required' });
+      }
+      
+      const slots = await storage.getAvailableSlots(contractorId, date);
+      res.json(slots);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/availability', async (req, res) => {
+    if (!req.isAuthenticated() || req.user!.userType !== 'service_provider') {
+      return res.status(403).json({ message: 'Service provider access required' });
+    }
+
+    try {
+      const availabilityData = req.body;
+      availabilityData.serviceProviderId = req.user!.id;
+      
+      const availability = await storage.setAvailability(availabilityData);
+      res.json(availability);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/availability', async (req, res) => {
+    if (!req.isAuthenticated() || req.user!.userType !== 'service_provider') {
+      return res.status(403).json({ message: 'Service provider access required' });
+    }
+
+    try {
+      const availability = await storage.getAvailability(req.user!.id);
+      res.json(availability);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

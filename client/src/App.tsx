@@ -12,6 +12,8 @@ import ProjectDetails from "@/pages/project-details";
 import LeadMarketplace from "@/pages/lead-marketplace";
 import ContractorSettings from "@/pages/contractor-settings";
 import AdminDashboard from "@/pages/admin-dashboard";
+import Scheduler from "@/pages/scheduler";
+import InstallPrompt from "@/components/install-prompt";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +25,7 @@ function Router() {
       <Route path="/business-dashboard" component={BusinessDashboard} />
       <Route path="/lead-marketplace" component={LeadMarketplace} />
       <Route path="/contractor-settings" component={ContractorSettings} />
+      <Route path="/scheduler" component={Scheduler} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/project/:id" component={ProjectDetails} />
       <Route component={NotFound} />
@@ -37,6 +40,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <InstallPrompt />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

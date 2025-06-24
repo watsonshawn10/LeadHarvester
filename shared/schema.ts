@@ -115,6 +115,33 @@ export const favorites = pgTable("favorites", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const appointments = pgTable("appointments", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  homeownerId: integer("homeowner_id").notNull().references(() => users.id),
+  serviceProviderId: integer("service_provider_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  duration: integer("duration").default(60), // minutes
+  status: text("status").notNull().default("scheduled"), // scheduled, confirmed, completed, cancelled
+  location: text("location"),
+  notes: text("notes"),
+  reminderSent: boolean("reminder_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const availability = pgTable("availability", {
+  id: serial("id").primaryKey(),
+  serviceProviderId: integer("service_provider_id").notNull().references(() => users.id),
+  dayOfWeek: integer("day_of_week").notNull(), // 0 = Sunday, 1 = Monday, etc.
+  startTime: text("start_time").notNull(), // HH:MM format
+  endTime: text("end_time").notNull(), // HH:MM format
+  isAvailable: boolean("is_available").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   ownedProjects: many(projects),
@@ -245,6 +272,17 @@ export const insertFavoriteSchema = createInsertSchema(favorites).omit({
   createdAt: true,
 });
 
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAvailabilitySchema = createInsertSchema(availability).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -260,3 +298,7 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Favorite = typeof favorites.$inferSelect;
 export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
+export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type Availability = typeof availability.$inferSelect;
+export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;

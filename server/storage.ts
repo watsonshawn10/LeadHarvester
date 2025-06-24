@@ -6,6 +6,8 @@ import {
   reviews, 
   messages, 
   favorites,
+  appointments,
+  availability,
   type User, 
   type InsertUser,
   type Project,
@@ -19,7 +21,11 @@ import {
   type Message,
   type InsertMessage,
   type Favorite,
-  type InsertFavorite
+  type InsertFavorite,
+  type Appointment,
+  type InsertAppointment,
+  type Availability,
+  type InsertAvailability
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, count } from "drizzle-orm";
@@ -82,6 +88,18 @@ export interface IStorage {
     conversionRate: number;
     avgLeadValue: number;
   }>;
+
+  // Scheduling methods
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  getAppointmentsByUser(userId: number): Promise<Appointment[]>;
+  getAppointmentsByProject(projectId: number): Promise<Appointment[]>;
+  updateAppointment(id: number, updates: Partial<InsertAppointment>): Promise<Appointment>;
+  cancelAppointment(id: number): Promise<Appointment>;
+  
+  // Availability methods
+  setAvailability(availability: InsertAvailability): Promise<Availability>;
+  getAvailability(serviceProviderId: number): Promise<Availability[]>;
+  getAvailableSlots(serviceProviderId: number, date: string): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -471,6 +489,139 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(users)
       .where(eq(users.userType, 'service_provider'));
+  }
+
+  // Scheduling methods implementation
+  async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
+    const [appointment] = await db
+      .insert(appointments)
+      .values(insertAppointment)
+      .returning();
+    return appointment;
+  }
+
+  async getAppointmentsByUser(userId: number): Promise<Appointment[]> {
+    return await db.select()
+      .from(appointments)
+      .where(
+        sql`${appointments.homeownerId} = ${userId} OR ${appointments.serviceProviderId} = ${userId}`
+      )
+      .orderBy(desc(appointments.scheduledAt));
+  }
+
+  async getAppointmentsByProject(projectId: number): Promise<Appointment[]> {
+    return await db.select()
+      .from(appointments)
+      .where(eq(appointments.projectId, projectId))
+      .orderBy(desc(appointments.scheduledAt));
+  }
+
+  async updateAppointment(id: number, updates: Partial<InsertAppointment>): Promise<Appointment> {
+    const [appointment] = await db
+      .update(appointments)
+      .set({ ...updates, updatedAt: sql`NOW()` })
+      .where(eq(appointments.id, id))
+      .returning();
+    return appointment;
+  }
+
+  async cancelAppointment(id: number): Promise<Appointment> {
+    return this.updateAppointment(id, { status: 'cancelled' });
+  }
+
+  // Availability methods implementation
+  async setAvailability(insertAvailability: InsertAvailability): Promise<Availability> {
+    // First, check if availability exists for this day
+    const existing = await db.select()
+      .from(availability)
+      .where(
+        and(
+          eq(availability.serviceProviderId, insertAvailability.serviceProviderId),
+          eq(availability.dayOfWeek, insertAvailability.dayOfWeek)
+        )
+      );
+
+    if (existing.length > 0) {
+      // Update existing availability
+      const [updated] = await db
+        .update(availability)
+        .set(insertAvailability)
+        .where(eq(availability.id, existing[0].id))
+        .returning();
+      return updated;
+    } else {
+      // Create new availability
+      const [created] = await db
+        .insert(availability)
+        .values(insertAvailability)
+        .returning();
+      return created;
+    }
+  }
+
+  async getAvailability(serviceProviderId: number): Promise<Availability[]> {
+    return await db.select()
+      .from(availability)
+      .where(eq(availability.serviceProviderId, serviceProviderId))
+      .orderBy(availability.dayOfWeek);
+  }
+
+  async getAvailableSlots(serviceProviderId: number, date: string): Promise<string[]> {
+    const dayOfWeek = new Date(date).getDay();
+    
+    // Get availability for this day
+    const dayAvailability = await db.select()
+      .from(availability)
+      .where(
+        and(
+          eq(availability.serviceProviderId, serviceProviderId),
+          eq(availability.dayOfWeek, dayOfWeek),
+          eq(availability.isAvailable, true)
+        )
+      );
+
+    if (dayAvailability.length === 0) {
+      return [];
+    }
+
+    // Get existing appointments for this date
+    const existingAppointments = await db.select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.serviceProviderId, serviceProviderId),
+          sql`DATE(${appointments.scheduledAt}) = ${date}`,
+          sql`${appointments.status} != 'cancelled'`
+        )
+      );
+
+    const slots: string[] = [];
+    const startTime = dayAvailability[0].startTime;
+    const endTime = dayAvailability[0].endTime;
+    
+    // Generate 1-hour slots between start and end time
+    const start = new Date(`${date}T${startTime}`);
+    const end = new Date(`${date}T${endTime}`);
+    
+    while (start < end) {
+      const slotTime = start.toTimeString().slice(0, 5);
+      const slotEnd = new Date(start.getTime() + 60 * 60 * 1000);
+      
+      // Check if this slot conflicts with existing appointments
+      const hasConflict = existingAppointments.some(apt => {
+        const aptStart = new Date(apt.scheduledAt);
+        const aptEnd = new Date(aptStart.getTime() + (apt.duration || 60) * 60 * 1000);
+        return start < aptEnd && slotEnd > aptStart;
+      });
+      
+      if (!hasConflict) {
+        slots.push(slotTime);
+      }
+      
+      start.setHours(start.getHours() + 1);
+    }
+    
+    return slots;
   }
 }
 
