@@ -11,6 +11,7 @@ import Auth from "@/pages/auth";
 import ProjectDetails from "@/pages/project-details";
 import LeadMarketplace from "@/pages/lead-marketplace";
 import ContractorSettings from "@/pages/contractor-settings";
+import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/business-dashboard" component={BusinessDashboard} />
       <Route path="/lead-marketplace" component={LeadMarketplace} />
       <Route path="/contractor-settings" component={ContractorSettings} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/project/:id" component={ProjectDetails} />
       <Route component={NotFound} />
     </Switch>

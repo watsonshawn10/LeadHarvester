@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  userType: text("user_type").notNull(), // 'homeowner' | 'service_provider'
+  userType: text("user_type").notNull(), // 'homeowner' | 'service_provider' | 'admin'
   firstName: text("first_name"),
   lastName: text("last_name"),
   phone: text("phone"),
@@ -38,6 +38,8 @@ export const users = pgTable("users", {
   weeklySpentAmount: decimal("weekly_spent_amount", { precision: 10, scale: 2 }).default("0.00"),
   lastDailyReset: timestamp("last_daily_reset"),
   lastWeeklyReset: timestamp("last_weekly_reset"),
+  canReceiveFreeLeads: boolean("can_receive_free_leads").default(false),
+  freeLeadsRemaining: integer("free_leads_remaining").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

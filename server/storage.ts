@@ -36,6 +36,11 @@ export interface IStorage {
   canAffordLead(contractor: User, leadPrice: number): Promise<boolean>;
   updateSpentAmount(contractorId: number, amount: number): Promise<void>;
   
+  // Admin methods for free leads
+  grantFreeLeads(contractorId: number, count: number): Promise<User>;
+  useFreeLeadCredit(contractorId: number): Promise<User>;
+  getAllContractors(): Promise<User[]>;
+  
   // Project methods
   getProject(id: number): Promise<Project | undefined>;
   getProjectsByHomeowner(homeownerId: number): Promise<Project[]>;
@@ -435,6 +440,37 @@ export class DatabaseStorage implements IStorage {
       dailySpentAmount: (dailySpent + amount).toString(),
       weeklySpentAmount: (weeklySpent + amount).toString(),
     });
+  }
+
+  // Admin methods for free leads management
+  async grantFreeLeads(contractorId: number, count: number): Promise<User> {
+    const contractor = await this.getUser(contractorId);
+    if (!contractor) throw new Error('Contractor not found');
+    
+    const newFreeLeadsCount = (contractor.freeLeadsRemaining || 0) + count;
+    
+    return await this.updateUser(contractorId, {
+      freeLeadsRemaining: newFreeLeadsCount,
+      canReceiveFreeLeads: true,
+    });
+  }
+
+  async useFreeLeadCredit(contractorId: number): Promise<User> {
+    const contractor = await this.getUser(contractorId);
+    if (!contractor) throw new Error('Contractor not found');
+    
+    const remainingFreeLeads = Math.max(0, (contractor.freeLeadsRemaining || 0) - 1);
+    
+    return await this.updateUser(contractorId, {
+      freeLeadsRemaining: remainingFreeLeads,
+      canReceiveFreeLeads: remainingFreeLeads > 0,
+    });
+  }
+
+  async getAllContractors(): Promise<User[]> {
+    return await db.select()
+      .from(users)
+      .where(eq(users.userType, 'service_provider'));
   }
 }
 

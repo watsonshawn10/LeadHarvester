@@ -267,6 +267,7 @@ export default function LeadMarketplace() {
       case 'handyman': return 'Handyman Services';
       case 'cleaning': return 'Cleaning Services';
       case 'pest-control': return 'Pest Control';
+      case 'christmas-lighting': return 'Christmas Lighting';
       default: return category;
     }
   };
@@ -344,6 +345,7 @@ export default function LeadMarketplace() {
                   <SelectItem value="handyman">Handyman Services</SelectItem>
                   <SelectItem value="cleaning">Cleaning Services</SelectItem>
                   <SelectItem value="pest-control">Pest Control</SelectItem>
+                  <SelectItem value="christmas-lighting">Christmas Lighting</SelectItem>
                 </SelectContent>
               </Select>
 

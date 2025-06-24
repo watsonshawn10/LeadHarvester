@@ -68,6 +68,9 @@ function calculateLeadPrice(category: string, budget?: string, urgency?: string)
     case 'pest-control':
       basePrice = 15; // Thumbtack: $12-25 for pest control
       break;
+    case 'christmas-lighting':
+      basePrice = 18; // Thumbtack: $15-30 for holiday lighting
+      break;
     default:
       basePrice = 15; // Competitive default
   }
@@ -897,9 +900,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         basePrice: 15,
         prosAvailable: 567,
         image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+      },
+      {
+        id: 13,
+        name: "Christmas Lighting",
+        description: "Holiday lighting installation and removal",
+        basePrice: 18,
+        prosAvailable: 234,
+        image: "https://images.unsplash.com/photo-1544957992-20319ba21902?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       }
     ];
     res.json(categories);
+  });
+
+  // Admin routes for managing free leads
+  app.get('/api/admin/contractors', async (req, res) => {
+    if (!req.isAuthenticated() || req.user!.userType !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    try {
+      const contractors = await storage.getAllContractors();
+      res.json(contractors);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/admin/grant-free-leads', async (req, res) => {
+    if (!req.isAuthenticated() || req.user!.userType !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    try {
+      const { contractorId, count } = req.body;
+      
+      if (!contractorId || !count || count <= 0) {
+        return res.status(400).json({ message: 'Valid contractor ID and lead count required' });
+      }
+
+      const updatedContractor = await storage.grantFreeLeads(contractorId, count);
+      res.json({ 
+        message: `Granted ${count} free leads to ${updatedContractor.businessName || updatedContractor.username}`,
+        contractor: updatedContractor 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
   });
 
   const httpServer = createServer(app);

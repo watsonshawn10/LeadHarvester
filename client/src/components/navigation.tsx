@@ -66,6 +66,13 @@ export default function Navigation() {
                     </Link>
                   </>
                 )}
+                {user.userType === 'admin' && (
+                  <Link href="/admin">
+                    <Button variant="ghost" className="text-orange-600 hover:text-orange-700 font-medium">
+                      Admin Panel
+                    </Button>
+                  </Link>
+                )}
                 <Button onClick={handleLogout} variant="ghost" className="text-neutral-600 hover:text-primary">
                   Sign Out
                 </Button>

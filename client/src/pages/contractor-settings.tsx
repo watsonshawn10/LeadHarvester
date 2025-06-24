@@ -398,6 +398,7 @@ export default function ContractorSettings() {
     { value: 'handyman', label: 'Handyman Services' },
     { value: 'cleaning', label: 'Cleaning Services' },
     { value: 'pest-control', label: 'Pest Control' },
+    { value: 'christmas-lighting', label: 'Christmas Lighting' },
   ];
 
   return (
