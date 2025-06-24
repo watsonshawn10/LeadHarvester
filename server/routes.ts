@@ -105,6 +105,8 @@ async function distributeLeadsAutomatically(project: any) {
 
         // Check if contractor has sufficient lead credits
         const contractorCredits = parseFloat(contractor.leadCredits || '0');
+        let paymentIntentId: string | null = null;
+        
         if (contractorCredits >= leadPrice) {
           // Deduct from credits
           await storage.updateUser(contractor.id, {
@@ -130,6 +132,8 @@ async function distributeLeadsAutomatically(project: any) {
             console.log(`Payment failed for contractor ${contractor.id}`);
             continue;
           }
+          
+          paymentIntentId = paymentIntent.id;
         }
 
         // Create the lead
@@ -139,7 +143,7 @@ async function distributeLeadsAutomatically(project: any) {
           price: leadPrice.toString(),
           status: 'new',
           isAutoPurchased: true,
-          stripePaymentIntentId: contractorCredits >= leadPrice ? null : paymentIntent?.id,
+          stripePaymentIntentId: paymentIntentId,
         });
 
         console.log(`Lead automatically distributed to contractor ${contractor.id} for project ${project.id}`);
