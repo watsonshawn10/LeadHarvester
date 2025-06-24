@@ -256,11 +256,17 @@ export default function LeadMarketplace() {
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case 'house-painting': return 'House Painting';
-      case 'basement-remodeling': return 'Basement Remodeling';
       case 'kitchen-renovation': return 'Kitchen Renovation';
-      case 'plumbing': return 'Plumbing';
-      case 'electrical': return 'Electrical';
+      case 'basement-remodeling': return 'Basement Remodeling';
+      case 'electrical': return 'Electrical Work';
+      case 'plumbing': return 'Plumbing Services';
       case 'landscaping': return 'Landscaping';
+      case 'roofing': return 'Roofing';
+      case 'flooring': return 'Flooring';
+      case 'hvac': return 'HVAC Services';
+      case 'handyman': return 'Handyman Services';
+      case 'cleaning': return 'Cleaning Services';
+      case 'pest-control': return 'Pest Control';
       default: return category;
     }
   };
@@ -327,11 +333,17 @@ export default function LeadMarketplace() {
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="house-painting">House Painting</SelectItem>
-                  <SelectItem value="basement-remodeling">Basement Remodeling</SelectItem>
                   <SelectItem value="kitchen-renovation">Kitchen Renovation</SelectItem>
-                  <SelectItem value="plumbing">Plumbing</SelectItem>
-                  <SelectItem value="electrical">Electrical</SelectItem>
+                  <SelectItem value="basement-remodeling">Basement Remodeling</SelectItem>
+                  <SelectItem value="electrical">Electrical Work</SelectItem>
+                  <SelectItem value="plumbing">Plumbing Services</SelectItem>
                   <SelectItem value="landscaping">Landscaping</SelectItem>
+                  <SelectItem value="roofing">Roofing</SelectItem>
+                  <SelectItem value="flooring">Flooring</SelectItem>
+                  <SelectItem value="hvac">HVAC Services</SelectItem>
+                  <SelectItem value="handyman">Handyman Services</SelectItem>
+                  <SelectItem value="cleaning">Cleaning Services</SelectItem>
+                  <SelectItem value="pest-control">Pest Control</SelectItem>
                 </SelectContent>
               </Select>
 

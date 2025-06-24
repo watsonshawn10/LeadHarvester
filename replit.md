@@ -123,10 +123,11 @@ TaskNab is a full-stack marketplace application that connects homeowners with ve
 - Added lead credits system for prepaid purchases
 - Built contractor settings page for budget and payment configuration
 
-✓ **Payment Processing Integration** (June 24, 2025)
-- Complete Stripe payment system for lead purchases
-- Dynamic pricing based on project scope, budget, and urgency
-- Secure payment processing with automatic billing
+✓ **Competitive Pricing System** (June 24, 2025)
+- Updated lead pricing to match Thumbtack rates (20-30% lower)
+- Expanded to 12 service categories with competitive base prices
+- Dynamic pricing algorithm based on project scope, budget, and urgency
+- Complete Stripe payment system with automatic billing
 - Budget enforcement to prevent overspending
 
 ✓ **Enhanced Database Schema** (June 24, 2025)

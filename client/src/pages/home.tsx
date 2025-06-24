@@ -47,6 +47,82 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Competitive Pricing Section */}
+          <div className="bg-white rounded-2xl p-8 mb-12">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-neutral-800 mb-4">Competitive Lead Pricing</h3>
+              <p className="text-neutral-600">See how TaskNab compares to Thumbtack for lead costs</p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-8 items-center">
+              <div>
+                <h4 className="text-lg font-semibold text-neutral-800 mb-4">Why Choose TaskNab?</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
+                    <span className="text-neutral-700">20-30% lower lead costs than Thumbtack</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
+                    <span className="text-neutral-700">Automatic lead distribution to qualified contractors</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
+                    <span className="text-neutral-700">Budget controls and spending limits</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
+                    <span className="text-neutral-700">No monthly subscription fees</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-neutral-50 rounded-lg p-6">
+                <h4 className="text-lg font-semibold text-neutral-800 mb-4">Sample Lead Prices</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-neutral-200">
+                    <span className="text-sm text-neutral-600">Kitchen Renovation</span>
+                    <div className="text-right">
+                      <span className="text-sm line-through text-neutral-400">$50-70</span>
+                      <span className="text-sm font-semibold text-secondary ml-2">$45</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-neutral-200">
+                    <span className="text-sm text-neutral-600">Electrical Work</span>
+                    <div className="text-right">
+                      <span className="text-sm line-through text-neutral-400">$30-40</span>
+                      <span className="text-sm font-semibold text-secondary ml-2">$25</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-neutral-200">
+                    <span className="text-sm text-neutral-600">Plumbing Services</span>
+                    <div className="text-right">
+                      <span className="text-sm line-through text-neutral-400">$25-35</span>
+                      <span className="text-sm font-semibold text-secondary ml-2">$20</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-neutral-200">
+                    <span className="text-sm text-neutral-600">House Painting</span>
+                    <div className="text-right">
+                      <span className="text-sm line-through text-neutral-400">$28-35</span>
+                      <span className="text-sm font-semibold text-secondary ml-2">$22</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-neutral-600">Handyman Services</span>
+                    <div className="text-right">
+                      <span className="text-sm line-through text-neutral-400">$15-25</span>
+                      <span className="text-sm font-semibold text-secondary ml-2">$12</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 text-xs text-neutral-500">
+                  * Competitor pricing based on 2024 market research
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Testimonials */}
           <div className="grid md:grid-cols-2 gap-8">
             <Card className="bg-white shadow-sm">

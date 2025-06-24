@@ -387,11 +387,17 @@ export default function ContractorSettings() {
 
   const categories = [
     { value: 'house-painting', label: 'House Painting' },
-    { value: 'basement-remodeling', label: 'Basement Remodeling' },
     { value: 'kitchen-renovation', label: 'Kitchen Renovation' },
-    { value: 'plumbing', label: 'Plumbing' },
-    { value: 'electrical', label: 'Electrical' },
+    { value: 'basement-remodeling', label: 'Basement Remodeling' },
+    { value: 'electrical', label: 'Electrical Work' },
+    { value: 'plumbing', label: 'Plumbing Services' },
     { value: 'landscaping', label: 'Landscaping' },
+    { value: 'roofing', label: 'Roofing' },
+    { value: 'flooring', label: 'Flooring' },
+    { value: 'hvac', label: 'HVAC Services' },
+    { value: 'handyman', label: 'Handyman Services' },
+    { value: 'cleaning', label: 'Cleaning Services' },
+    { value: 'pest-control', label: 'Pest Control' },
   ];
 
   return (
