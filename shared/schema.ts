@@ -32,6 +32,12 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripePaymentMethodId: text("stripe_payment_method_id"),
   leadCredits: decimal("lead_credits", { precision: 10, scale: 2 }).default("0.00"),
+  dailyBudgetLimit: decimal("daily_budget_limit", { precision: 10, scale: 2 }),
+  weeklyBudgetLimit: decimal("weekly_budget_limit", { precision: 10, scale: 2 }),
+  dailySpentAmount: decimal("daily_spent_amount", { precision: 10, scale: 2 }).default("0.00"),
+  weeklySpentAmount: decimal("weekly_spent_amount", { precision: 10, scale: 2 }).default("0.00"),
+  lastDailyReset: timestamp("last_daily_reset"),
+  lastWeeklyReset: timestamp("last_weekly_reset"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

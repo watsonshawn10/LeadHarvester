@@ -103,6 +103,13 @@ async function distributeLeadsAutomatically(project: any) {
           continue;
         }
 
+        // Check budget limits
+        const canAfford = await storage.canAffordLead(contractor, leadPrice);
+        if (!canAfford) {
+          console.log(`Skipping contractor ${contractor.id} - exceeds budget limits`);
+          continue;
+        }
+
         // Check if contractor has sufficient lead credits
         const contractorCredits = parseFloat(contractor.leadCredits || '0');
         let paymentIntentId: string | null = null;
@@ -114,27 +121,35 @@ async function distributeLeadsAutomatically(project: any) {
           });
         } else {
           // Charge via Stripe
-          const paymentIntent = await stripe.paymentIntents.create({
-            amount: leadPrice * 100, // Convert to cents
-            currency: 'usd',
-            customer: contractor.stripeCustomerId,
-            payment_method: contractor.stripePaymentMethodId,
-            confirm: true,
-            return_url: 'https://your-domain.com/return',
-            metadata: {
-              contractorId: contractor.id.toString(),
-              projectId: project.id.toString(),
-              leadPrice: leadPrice.toString(),
-            },
-          });
+          try {
+            const paymentIntent = await stripe.paymentIntents.create({
+              amount: leadPrice * 100, // Convert to cents
+              currency: 'usd',
+              customer: contractor.stripeCustomerId,
+              payment_method: contractor.stripePaymentMethodId,
+              confirm: true,
+              return_url: 'https://your-domain.com/return',
+              metadata: {
+                contractorId: contractor.id.toString(),
+                projectId: project.id.toString(),
+                leadPrice: leadPrice.toString(),
+              },
+            });
 
-          if (paymentIntent.status !== 'succeeded') {
-            console.log(`Payment failed for contractor ${contractor.id}`);
+            if (paymentIntent.status !== 'succeeded') {
+              console.log(`Payment failed for contractor ${contractor.id}`);
+              continue;
+            }
+            
+            paymentIntentId = paymentIntent.id;
+          } catch (paymentError) {
+            console.log(`Payment denied for contractor ${contractor.id}:`, paymentError);
             continue;
           }
-          
-          paymentIntentId = paymentIntent.id;
         }
+
+        // Update spent amounts
+        await storage.updateSpentAmount(contractor.id, leadPrice);
 
         // Create the lead
         await storage.createLead({
@@ -618,6 +633,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(leadsWithPricing);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Contractor payment settings routes
+  app.get("/api/contractor/payment-settings", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can access payment settings" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        autoLeadPurchase: user.autoLeadPurchase,
+        dailyBudgetLimit: user.dailyBudgetLimit,
+        weeklyBudgetLimit: user.weeklyBudgetLimit,
+        dailySpentAmount: user.dailySpentAmount,
+        weeklySpentAmount: user.weeklySpentAmount,
+        leadCredits: user.leadCredits,
+        hasPaymentMethod: !!user.stripePaymentMethodId,
+        preferredCategories: user.preferredCategories || [],
+        serviceRadius: user.serviceRadius,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/contractor/payment-settings", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can update payment settings" });
+      }
+
+      const {
+        autoLeadPurchase,
+        dailyBudgetLimit,
+        weeklyBudgetLimit,
+        preferredCategories,
+        serviceRadius,
+      } = req.body;
+
+      const updates: Partial<InsertUser> = {};
+      
+      if (typeof autoLeadPurchase === 'boolean') {
+        updates.autoLeadPurchase = autoLeadPurchase;
+      }
+      
+      if (dailyBudgetLimit !== undefined) {
+        updates.dailyBudgetLimit = dailyBudgetLimit ? dailyBudgetLimit.toString() : null;
+      }
+      
+      if (weeklyBudgetLimit !== undefined) {
+        updates.weeklyBudgetLimit = weeklyBudgetLimit ? weeklyBudgetLimit.toString() : null;
+      }
+      
+      if (preferredCategories) {
+        updates.preferredCategories = preferredCategories;
+      }
+      
+      if (serviceRadius !== undefined) {
+        updates.serviceRadius = serviceRadius;
+      }
+
+      const updatedUser = await storage.updateUser(req.user!.id, updates);
+      
+      res.json({
+        autoLeadPurchase: updatedUser.autoLeadPurchase,
+        dailyBudgetLimit: updatedUser.dailyBudgetLimit,
+        weeklyBudgetLimit: updatedUser.weeklyBudgetLimit,
+        dailySpentAmount: updatedUser.dailySpentAmount,
+        weeklySpentAmount: updatedUser.weeklySpentAmount,
+        leadCredits: updatedUser.leadCredits,
+        hasPaymentMethod: !!updatedUser.stripePaymentMethodId,
+        preferredCategories: updatedUser.preferredCategories || [],
+        serviceRadius: updatedUser.serviceRadius,
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/contractor/setup-payment-method", requireAuth, async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe not configured" });
+      }
+
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can setup payment methods" });
+      }
+
+      const { paymentMethodId } = req.body;
+      const user = await storage.getUser(req.user!.id);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let customerId = user.stripeCustomerId;
+
+      // Create Stripe customer if doesn't exist
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+          metadata: {
+            userId: user.id.toString(),
+          },
+        });
+        customerId = customer.id;
+      }
+
+      // Attach payment method to customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customerId,
+      });
+
+      // Update user with Stripe customer ID and payment method
+      await storage.updateUser(user.id, {
+        stripeCustomerId: customerId,
+        stripePaymentMethodId: paymentMethodId,
+      });
+
+      res.json({ success: true, message: "Payment method setup successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/contractor/add-credits", requireAuth, async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe not configured" });
+      }
+
+      if (req.user!.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only service providers can add credits" });
+      }
+
+      const { amount } = req.body; // Amount in dollars
+      const user = await storage.getUser(req.user!.id);
+
+      if (!user || !user.stripeCustomerId || !user.stripePaymentMethodId) {
+        return res.status(400).json({ message: "Payment method not setup" });
+      }
+
+      // Create payment intent for adding credits
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        customer: user.stripeCustomerId,
+        payment_method: user.stripePaymentMethodId,
+        confirm: true,
+        return_url: 'https://your-domain.com/return',
+        metadata: {
+          type: 'credit_purchase',
+          userId: user.id.toString(),
+          creditAmount: amount.toString(),
+        },
+      });
+
+      if (paymentIntent.status === 'succeeded') {
+        // Add credits to user account
+        const currentCredits = parseFloat(user.leadCredits || '0');
+        await storage.updateUser(user.id, {
+          leadCredits: (currentCredits + amount).toString(),
+        });
+
+        res.json({ success: true, newCreditBalance: currentCredits + amount });
+      } else {
+        res.status(400).json({ message: "Payment failed" });
+      }
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 

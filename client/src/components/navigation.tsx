@@ -53,11 +53,18 @@ export default function Navigation() {
                   </Button>
                 </Link>
                 {user.userType === 'service_provider' && (
-                  <Link href="/lead-marketplace">
-                    <Button variant="ghost" className="text-neutral-600 hover:text-primary">
-                      Find Leads
-                    </Button>
-                  </Link>
+                  <>
+                    <Link href="/lead-marketplace">
+                      <Button variant="ghost" className="text-neutral-600 hover:text-primary">
+                        Find Leads
+                      </Button>
+                    </Link>
+                    <Link href="/contractor-settings">
+                      <Button variant="ghost" className="text-neutral-600 hover:text-primary">
+                        Settings
+                      </Button>
+                    </Link>
+                  </>
                 )}
                 <Button onClick={handleLogout} variant="ghost" className="text-neutral-600 hover:text-primary">
                   Sign Out
@@ -113,11 +120,18 @@ export default function Navigation() {
                     </span>
                   </Link>
                   {user.userType === 'service_provider' && (
-                    <Link href="/lead-marketplace">
-                      <span className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium cursor-pointer">
-                        Find Leads
-                      </span>
-                    </Link>
+                    <>
+                      <Link href="/lead-marketplace">
+                        <span className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium cursor-pointer">
+                          Find Leads
+                        </span>
+                      </Link>
+                      <Link href="/contractor-settings">
+                        <span className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium cursor-pointer">
+                          Settings
+                        </span>
+                      </Link>
+                    </>
                   )}
                   <button
                     onClick={handleLogout}

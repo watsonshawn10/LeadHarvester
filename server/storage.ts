@@ -32,6 +32,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
   getEligibleContractors(category: string, zipCode: string, budget: string): Promise<User[]>;
+  checkAndResetBudgets(contractor: User): Promise<User>;
+  canAffordLead(contractor: User, leadPrice: number): Promise<boolean>;
+  updateSpentAmount(contractorId: number, amount: number): Promise<void>;
   
   // Project methods
   getProject(id: number): Promise<Project | undefined>;
@@ -349,6 +352,89 @@ export class DatabaseStorage implements IStorage {
     if (budget?.includes('1000-5000')) return 3000;
     if (budget?.includes('under-1000')) return 500;
     return 5000; // default
+  }
+
+  async checkAndResetBudgets(contractor: User): Promise<User> {
+    const now = new Date();
+    const updates: Partial<InsertUser> = {};
+    let needsUpdate = false;
+
+    // Check daily budget reset
+    if (contractor.lastDailyReset) {
+      const lastReset = new Date(contractor.lastDailyReset);
+      const daysDiff = Math.floor((now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff >= 1) {
+        updates.dailySpentAmount = "0.00";
+        updates.lastDailyReset = now;
+        needsUpdate = true;
+      }
+    } else {
+      updates.dailySpentAmount = "0.00";
+      updates.lastDailyReset = now;
+      needsUpdate = true;
+    }
+
+    // Check weekly budget reset (assuming week starts on Sunday)
+    if (contractor.lastWeeklyReset) {
+      const lastReset = new Date(contractor.lastWeeklyReset);
+      const weeksDiff = Math.floor((now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24 * 7));
+      
+      if (weeksDiff >= 1) {
+        updates.weeklySpentAmount = "0.00";
+        updates.lastWeeklyReset = now;
+        needsUpdate = true;
+      }
+    } else {
+      updates.weeklySpentAmount = "0.00";
+      updates.lastWeeklyReset = now;
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      return await this.updateUser(contractor.id, updates);
+    }
+
+    return contractor;
+  }
+
+  async canAffordLead(contractor: User, leadPrice: number): Promise<boolean> {
+    // Reset budgets if needed
+    const updatedContractor = await this.checkAndResetBudgets(contractor);
+    
+    const dailySpent = parseFloat(updatedContractor.dailySpentAmount || '0');
+    const weeklySpent = parseFloat(updatedContractor.weeklySpentAmount || '0');
+    
+    // Check daily budget limit
+    if (updatedContractor.dailyBudgetLimit) {
+      const dailyLimit = parseFloat(updatedContractor.dailyBudgetLimit);
+      if (dailySpent + leadPrice > dailyLimit) {
+        return false;
+      }
+    }
+
+    // Check weekly budget limit
+    if (updatedContractor.weeklyBudgetLimit) {
+      const weeklyLimit = parseFloat(updatedContractor.weeklyBudgetLimit);
+      if (weeklySpent + leadPrice > weeklyLimit) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async updateSpentAmount(contractorId: number, amount: number): Promise<void> {
+    const contractor = await this.getUser(contractorId);
+    if (!contractor) return;
+
+    const dailySpent = parseFloat(contractor.dailySpentAmount || '0');
+    const weeklySpent = parseFloat(contractor.weeklySpentAmount || '0');
+
+    await this.updateUser(contractorId, {
+      dailySpentAmount: (dailySpent + amount).toString(),
+      weeklySpentAmount: (weeklySpent + amount).toString(),
+    });
   }
 }
 
