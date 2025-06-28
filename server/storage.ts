@@ -630,7 +630,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Refund methods implementation
-  async processLeadRefund(leadId: number, reason: string, refundPercentage: number = 50): Promise<Lead> {
+  async processLeadRefund(leadId: number, reason: string, refundPercentage: number = 40): Promise<Lead> {
     const lead = await this.getLead(leadId);
     if (!lead) {
       throw new Error('Lead not found');

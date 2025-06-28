@@ -1058,7 +1058,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/leads/:id/refund", requireAuth, async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
-      const { reason, refundPercentage = 50 } = req.body;
+      const { reason, refundPercentage = 40 } = req.body;
 
       if (!reason) {
         return res.status(400).json({ message: "Refund reason is required" });
@@ -1092,7 +1092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { refundPercentage = 50 } = req.body;
+      const { refundPercentage = 40 } = req.body;
 
       if (refundPercentage < 0 || refundPercentage > 100) {
         return res.status(400).json({ message: "Refund percentage must be between 0 and 100" });
@@ -1146,7 +1146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Automated refund check - runs periodically (could be called by cron job)
   app.post("/api/system/check-refunds", async (req, res) => {
     try {
-      const { refundPercentage = 50 } = req.body;
+      const { refundPercentage = 40 } = req.body;
       const eligibleLeads = await storage.getLeadsEligibleForRefund();
       let processedCount = 0;
 
