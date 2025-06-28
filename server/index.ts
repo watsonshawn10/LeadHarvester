@@ -37,34 +37,73 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // Set NODE_ENV to production if not set for deployment
+    if (!process.env.NODE_ENV) {
+      process.env.NODE_ENV = 'production';
+    }
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const server = await registerRoutes(app);
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+      log(`Error: ${message}`, "error");
+      res.status(status).json({ message });
+      
+      // Don't throw in production to prevent crashes
+      if (process.env.NODE_ENV === "development") {
+        throw err;
+      }
+    });
+
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (process.env.NODE_ENV === "development") {
+      await setupVite(app, server);
+    } else {
+      try {
+        serveStatic(app);
+        log("Static files configured for production", "production");
+      } catch (staticError: unknown) {
+        const errorMessage = staticError instanceof Error ? staticError.message : String(staticError);
+        log(`Static file setup error: ${errorMessage}`, "error");
+        // Add fallback for missing static files
+        app.use("*", (_req, res) => {
+          res.status(404).json({ message: "Application is starting up, please try again in a moment" });
+        });
+      }
+    }
+
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port} in ${process.env.NODE_ENV} mode`);
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      log(`Uncaught Exception: ${error.message}`, "error");
+      console.error(error);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, "error");
+      console.error(reason);
+    });
+
+  } catch (startupError: unknown) {
+    const errorMessage = startupError instanceof Error ? startupError.message : String(startupError);
+    log(`Startup error: ${errorMessage}`, "error");
+    console.error("Failed to start server:", startupError);
+    process.exit(1);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();
