@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupProductionStatic, setupFallbackApp } from "./production";
 
 const app = express();
 app.use(express.json());
@@ -38,9 +39,20 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Set NODE_ENV to production if not set for deployment
+    // Enhanced environment detection for deployment
     if (!process.env.NODE_ENV) {
-      process.env.NODE_ENV = 'production';
+      // Detect if we're in a production-like environment
+      const isProduction = process.env.REPLIT_DEPLOYMENT || 
+                          process.env.RAILWAY_DEPLOYMENT || 
+                          process.env.VERCEL_ENV === 'production' ||
+                          process.argv.includes('--production') ||
+                          process.cwd().includes('/tmp/') ||
+                          !process.stdout.isTTY;
+      
+      process.env.NODE_ENV = isProduction ? 'production' : 'development';
+      log(`Environment auto-detected as: ${process.env.NODE_ENV}`, "startup");
+    } else {
+      log(`Environment set to: ${process.env.NODE_ENV}`, "startup");
     }
 
     const server = await registerRoutes(app);
@@ -64,16 +76,33 @@ app.use((req, res, next) => {
     if (process.env.NODE_ENV === "development") {
       await setupVite(app, server);
     } else {
+      // Production mode - try multiple static file serving approaches
+      let staticConfigured = false;
+      
       try {
         serveStatic(app);
+        staticConfigured = true;
         log("Static files configured for production", "production");
       } catch (staticError: unknown) {
         const errorMessage = staticError instanceof Error ? staticError.message : String(staticError);
-        log(`Static file setup error: ${errorMessage}`, "error");
-        // Add fallback for missing static files
-        app.use("*", (_req, res) => {
-          res.status(404).json({ message: "Application is starting up, please try again in a moment" });
-        });
+        log(`Primary static file setup failed: ${errorMessage}`, "error");
+        
+        // Try alternative production static file setup
+        try {
+          staticConfigured = setupProductionStatic(app);
+          if (staticConfigured) {
+            log("Alternative static file configuration successful", "production");
+          }
+        } catch (fallbackError: unknown) {
+          const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          log(`Fallback static file setup failed: ${fallbackMessage}`, "error");
+        }
+      }
+      
+      // If all static file approaches failed, setup fallback app
+      if (!staticConfigured) {
+        log("All static file configurations failed, setting up fallback app", "production");
+        setupFallbackApp(app);
       }
     }
 

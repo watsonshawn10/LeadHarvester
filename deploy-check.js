@@ -31,12 +31,25 @@ const checks = [
     fix: 'Add build and start scripts to package.json'
   },
   {
-    name: 'Error handling implemented',
+    name: 'Enhanced production error handling implemented',
     check: () => {
       const serverCode = fs.readFileSync('server/index.ts', 'utf8');
-      return serverCode.includes('try {') && serverCode.includes('catch');
+      return serverCode.includes('setupProductionStatic') && 
+             serverCode.includes('setupFallbackApp') &&
+             serverCode.includes('try {') && 
+             serverCode.includes('catch');
     },
-    fix: 'Add error handling to server startup'
+    fix: 'Enhanced production error handling with fallback static serving is missing'
+  },
+  {
+    name: 'Production static file handler exists',
+    check: () => fs.existsSync('server/production.ts'),
+    fix: 'Create production.ts file with alternative static file serving'
+  },
+  {
+    name: 'Database environment configured',
+    check: () => !!process.env.DATABASE_URL,
+    fix: 'Set DATABASE_URL environment variable'
   }
 ];
 
