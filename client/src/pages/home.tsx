@@ -164,7 +164,7 @@ export default function Home() {
                       <Star className="h-4 w-4 fill-current" />
                       <Star className="h-4 w-4 fill-current" />
                     </div>
-                    <p className="text-neutral-600 mb-2">"LeadCraft has transformed my business. Quality leads, fair pricing, and excellent ROI. Highly recommended!"</p>
+                    <p className="text-neutral-600 mb-2">"TaskNab has transformed my business. Quality leads, fair pricing, and excellent ROI. Highly recommended!"</p>
                     <div className="text-sm text-neutral-500">Tom R. - Painting Contractor</div>
                   </div>
                 </div>
@@ -211,7 +211,7 @@ export default function Home() {
             <div>
               <div className="flex items-center mb-4">
                 <Shield className="text-primary text-2xl mr-2" />
-                <span className="text-xl font-bold text-white">LeadCraft</span>
+                <span className="text-xl font-bold text-white">TaskNab</span>
               </div>
               <p className="text-sm text-neutral-400">Connecting homeowners with trusted service professionals nationwide.</p>
             </div>
@@ -248,7 +248,7 @@ export default function Home() {
           </div>
           
           <div className="border-t border-neutral-700 mt-8 pt-8 text-center">
-            <p className="text-sm text-neutral-400">&copy; 2024 LeadCraft. All rights reserved.</p>
+            <p className="text-sm text-neutral-400">&copy; 2024 TaskNab. All rights reserved.</p>
           </div>
         </div>
       </footer>

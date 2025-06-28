@@ -111,7 +111,7 @@ export default function Auth() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <Hammer className="text-primary text-3xl mr-2" />
-            <span className="text-2xl font-bold text-neutral-800">LeadCraft</span>
+            <span className="text-2xl font-bold text-neutral-800">TaskNab</span>
           </div>
           <h1 className="text-2xl font-bold text-neutral-800">
             {userType === 'business' ? 'Join as a Professional' : 'Welcome Back'}
