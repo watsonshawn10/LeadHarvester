@@ -28,7 +28,7 @@ import {
   type InsertAvailability
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, lt, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -60,6 +60,11 @@ export interface IStorage {
   getLeadsByProject(projectId: number): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: number, updates: Partial<InsertLead>): Promise<Lead>;
+  
+  // Refund methods
+  processLeadRefund(leadId: number, reason: string, refundPercentage?: number): Promise<Lead>;
+  getLeadsEligibleForRefund(): Promise<Lead[]>;
+  checkCustomerResponseStatus(projectId: number): Promise<boolean>;
   
   // Quote methods
   getQuote(id: number): Promise<Quote | undefined>;
@@ -622,6 +627,115 @@ export class DatabaseStorage implements IStorage {
     }
     
     return slots;
+  }
+
+  // Refund methods implementation
+  async processLeadRefund(leadId: number, reason: string, refundPercentage: number = 50): Promise<Lead> {
+    const lead = await this.getLead(leadId);
+    if (!lead) {
+      throw new Error('Lead not found');
+    }
+
+    if (!lead.isEligibleForRefund) {
+      throw new Error('Lead is not eligible for refund');
+    }
+
+    if (lead.status === 'refunded') {
+      throw new Error('Lead has already been refunded');
+    }
+
+    // Calculate refund amount based on percentage
+    const originalAmount = parseFloat(lead.price);
+    const refundAmount = originalAmount * (refundPercentage / 100);
+
+    // Process Stripe refund if payment was made via Stripe
+    let stripeRefundId = null;
+    if (lead.stripePaymentIntentId) {
+      try {
+        const Stripe = require('stripe');
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        
+        const refund = await stripe.refunds.create({
+          payment_intent: lead.stripePaymentIntentId,
+          amount: Math.round(refundAmount * 100), // Convert to cents and apply percentage
+          reason: 'requested_by_customer',
+          metadata: {
+            leadId: leadId.toString(),
+            refundReason: reason,
+            refundPercentage: refundPercentage.toString(),
+            originalAmount: originalAmount.toString(),
+            refundAmount: refundAmount.toString(),
+          }
+        });
+        
+        stripeRefundId = refund.id;
+      } catch (error) {
+        console.error('Stripe refund failed:', error);
+        // Continue with credit refund if Stripe fails
+      }
+    }
+
+    // Refund to contractor's credit balance (percentage amount)
+    const contractor = await this.getUser(lead.serviceProviderId);
+    if (contractor) {
+      const currentCredits = parseFloat(contractor.leadCredits || '0');
+      
+      await this.updateUser(contractor.id, {
+        leadCredits: (currentCredits + refundAmount).toString()
+      });
+    }
+
+    // Update lead status
+    const [updatedLead] = await db
+      .update(leads)
+      .set({
+        status: 'refunded',
+        refundedAt: new Date(),
+        refundReason: reason,
+        stripeRefundId,
+        isEligibleForRefund: false,
+      })
+      .where(eq(leads.id, leadId))
+      .returning();
+
+    return updatedLead;
+  }
+
+  async getLeadsEligibleForRefund(): Promise<Lead[]> {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    return await db
+      .select()
+      .from(leads)
+      .where(
+        and(
+          eq(leads.isEligibleForRefund, true),
+          eq(leads.status, 'new'),
+          sql`${leads.createdAt} < ${threeDaysAgo}`,
+          sql`${leads.contactedAt} IS NULL`
+        )
+      );
+  }
+
+  async checkCustomerResponseStatus(projectId: number): Promise<boolean> {
+    const project = await db.select()
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    if (project.length === 0) return false;
+
+    const quotesCount = await db.select({ count: sql<number>`count(*)` })
+      .from(quotes)
+      .where(eq(quotes.projectId, projectId));
+
+    const messagesCount = await db.select({ count: sql<number>`count(*)` })
+      .from(messages)
+      .where(eq(messages.projectId, projectId));
+
+    // Customer is considered responsive if they have quotes or messages
+    return (quotesCount[0]?.count || 0) > 0 || (messagesCount[0]?.count || 0) > 0;
   }
 }
 

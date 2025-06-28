@@ -63,7 +63,7 @@ export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   serviceProviderId: integer("service_provider_id").notNull().references(() => users.id),
-  status: text("status").default("new"), // 'new' | 'contacted' | 'quoted' | 'won' | 'lost'
+  status: text("status").default("new"), // 'new' | 'contacted' | 'quoted' | 'won' | 'lost' | 'refunded'
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   contactedAt: timestamp("contacted_at"),
   quotedAt: timestamp("quoted_at"),
@@ -73,6 +73,11 @@ export const leads = pgTable("leads", {
   notes: text("notes"),
   isAutoPurchased: boolean("is_auto_purchased").default(false),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeRefundId: text("stripe_refund_id"),
+  refundedAt: timestamp("refunded_at"),
+  refundReason: text("refund_reason"), // 'customer_no_response' | 'lead_quality' | 'duplicate' | 'other'
+  customerResponseDeadline: timestamp("customer_response_deadline"),
+  isEligibleForRefund: boolean("is_eligible_for_refund").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

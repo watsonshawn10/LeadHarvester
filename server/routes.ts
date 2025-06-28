@@ -178,7 +178,10 @@ async function distributeLeadsAutomatically(project: any) {
         // Update spent amounts
         await storage.updateSpentAmount(contractor.id, leadPrice);
 
-        // Create the lead
+        // Create the lead with 3-day response deadline
+        const responseDeadline = new Date();
+        responseDeadline.setDate(responseDeadline.getDate() + 3);
+
         await storage.createLead({
           projectId: project.id,
           serviceProviderId: contractor.id,
@@ -186,6 +189,8 @@ async function distributeLeadsAutomatically(project: any) {
           status: 'new',
           isAutoPurchased: true,
           stripePaymentIntentId: paymentIntentId,
+          customerResponseDeadline: responseDeadline,
+          isEligibleForRefund: true,
         });
 
         console.log(`Lead automatically distributed to contractor ${contractor.id} for project ${project.id}`);
@@ -1044,6 +1049,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const availability = await storage.getAvailability(req.user!.id);
       res.json(availability);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Refund management routes
+  app.post("/api/leads/:id/refund", requireAuth, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const { reason, refundPercentage = 50 } = req.body;
+
+      if (!reason) {
+        return res.status(400).json({ message: "Refund reason is required" });
+      }
+
+      if (refundPercentage < 0 || refundPercentage > 100) {
+        return res.status(400).json({ message: "Refund percentage must be between 0 and 100" });
+      }
+
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+
+      // Check if user owns this lead or is admin
+      if (lead.serviceProviderId !== req.user!.id && req.user!.userType !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const refundedLead = await storage.processLeadRefund(leadId, reason, refundPercentage);
+      res.json(refundedLead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin route to process automatic refunds for non-responsive customers
+  app.post("/api/admin/process-auto-refunds", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { refundPercentage = 50 } = req.body;
+
+      if (refundPercentage < 0 || refundPercentage > 100) {
+        return res.status(400).json({ message: "Refund percentage must be between 0 and 100" });
+      }
+
+      const eligibleLeads = await storage.getLeadsEligibleForRefund();
+      const processedRefunds = [];
+
+      for (const lead of eligibleLeads) {
+        try {
+          // Check if customer has been responsive for this project
+          const isResponsive = await storage.checkCustomerResponseStatus(lead.projectId);
+          
+          if (!isResponsive) {
+            const refundedLead = await storage.processLeadRefund(
+              lead.id, 
+              'customer_no_response',
+              refundPercentage
+            );
+            processedRefunds.push(refundedLead);
+          }
+        } catch (error) {
+          console.error(`Failed to process refund for lead ${lead.id}:`, error);
+        }
+      }
+
+      res.json({
+        message: `Processed ${processedRefunds.length} automatic refunds at ${refundPercentage}%`,
+        refunds: processedRefunds,
+        refundPercentage
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get leads eligible for refund (admin only)
+  app.get("/api/admin/refund-eligible-leads", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const eligibleLeads = await storage.getLeadsEligibleForRefund();
+      res.json(eligibleLeads);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Automated refund check - runs periodically (could be called by cron job)
+  app.post("/api/system/check-refunds", async (req, res) => {
+    try {
+      const { refundPercentage = 50 } = req.body;
+      const eligibleLeads = await storage.getLeadsEligibleForRefund();
+      let processedCount = 0;
+
+      for (const lead of eligibleLeads) {
+        try {
+          const isResponsive = await storage.checkCustomerResponseStatus(lead.projectId);
+          
+          if (!isResponsive) {
+            await storage.processLeadRefund(lead.id, 'customer_no_response', refundPercentage);
+            processedCount++;
+          }
+        } catch (error) {
+          console.error(`Auto-refund failed for lead ${lead.id}:`, error);
+        }
+      }
+
+      res.json({ 
+        processed: processedCount,
+        eligible: eligibleLeads.length,
+        refundPercentage
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

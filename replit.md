@@ -163,6 +163,16 @@ TaskNab is a full-stack marketplace application that connects homeowners with ve
 - Enhanced deployment readiness checks with comprehensive validation
 - Improved environment auto-detection for various deployment platforms
 
+✓ **Percentage-Based Refund System** (June 28, 2025)
+- Implemented configurable percentage refunds (defaults to 50%) instead of full refunds
+- Added automatic detection of non-responsive customers after 3 days
+- Enhanced lead distribution to charge 3-4 contractors per project automatically
+- Integrated Stripe partial refund processing with detailed metadata tracking
+- Added admin controls for bulk refund processing with custom percentages
+- Created automated refund eligibility checking for non-responsive scenarios
+- Added refund tracking fields to database schema (reason, amount, Stripe ID)
+- Implemented credit-based refund system for contractor balance restoration
+
 ## Changelog
 ```
 Changelog:

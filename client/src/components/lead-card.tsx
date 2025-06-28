@@ -44,6 +44,7 @@ export default function LeadCard({ lead }: LeadCardProps) {
       case 'quoted': return 'bg-purple-100 text-purple-800';
       case 'won': return 'bg-green-100 text-green-800';
       case 'lost': return 'bg-red-100 text-red-800';
+      case 'refunded': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -55,6 +56,7 @@ export default function LeadCard({ lead }: LeadCardProps) {
       case 'quoted': return 'Quoted';
       case 'won': return 'Won';
       case 'lost': return 'Lost';
+      case 'refunded': return 'Refunded';
       default: return status;
     }
   };
