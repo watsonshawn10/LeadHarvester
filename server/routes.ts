@@ -907,7 +907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Holiday lighting installation and removal",
         basePrice: 18,
         prosAvailable: 234,
-        image: "https://images.unsplash.com/photo-1544957992-20319ba21902?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1512389142860-9c449e58a543?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       }
     ];
     res.json(categories);
