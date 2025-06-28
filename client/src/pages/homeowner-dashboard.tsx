@@ -87,34 +87,107 @@ export default function HomeownerDashboard() {
           </div>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Actions & Stats */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary">
-                {projects?.filter(p => p.status === 'active').length || 0}
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-primary">
+                    {projects?.filter(p => p.status === 'active').length || 0}
+                  </div>
+                  <div className="text-sm text-neutral-600">Active Projects</div>
+                </div>
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                </div>
               </div>
-              <div className="text-sm text-neutral-600">Active Projects</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-secondary">0</div>
-              <div className="text-sm text-neutral-600">Total Quotes</div>
+          
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-green-600">
+                    0
+                  </div>
+                  <div className="text-sm text-neutral-600">Total Quotes</div>
+                </div>
+                <div className="p-2 bg-green-100 rounded-full">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">0</div>
-              <div className="text-sm text-neutral-600">Pending Reviews</div>
+          
+          <Card className="border-l-4 border-l-yellow-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {projects?.filter(p => p.status === 'completed').length || 0}
+                  </div>
+                  <div className="text-sm text-neutral-600">Completed Jobs</div>
+                </div>
+                <div className="p-2 bg-yellow-100 rounded-full">
+                  <Star className="h-5 w-5 text-yellow-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">0</div>
-              <div className="text-sm text-neutral-600">Favorite Pros</div>
+          
+          <Card className="border-l-4 border-l-purple-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">0</div>
+                  <div className="text-sm text-neutral-600">Saved Pros</div>
+                </div>
+                <div className="p-2 bg-purple-100 rounded-full">
+                  <Heart className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Quick Actions Bar */}
+        <div className="bg-white rounded-lg shadow-sm border p-4 mb-8">
+          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Dialog open={newProjectDialogOpen} onOpenChange={setNewProjectDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="h-auto p-4 flex flex-col items-center space-y-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
+                  <Plus className="h-6 w-6" />
+                  <span className="text-sm font-medium">Post New Project</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Project</DialogTitle>
+                </DialogHeader>
+                <ProjectForm onSuccess={() => setNewProjectDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+            
+            <Link href="/lead-marketplace">
+              <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2 w-full">
+                <MessageSquare className="h-6 w-6" />
+                <span className="text-sm font-medium">Browse Pros</span>
+              </Button>
+            </Link>
+            
+            <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+              <Calendar className="h-6 w-6" />
+              <span className="text-sm font-medium">Schedule Meeting</span>
+            </Button>
+            
+            <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+              <Heart className="h-6 w-6" />
+              <span className="text-sm font-medium">My Favorites</span>
+            </Button>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">

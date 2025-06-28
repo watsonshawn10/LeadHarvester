@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/lib/auth';
 import { Lead, AnalyticsStats } from '@/types';
-import { DollarSign, TrendingUp, Users, Award, Filter } from 'lucide-react';
+import { DollarSign, TrendingUp, Users, Award, Filter, Calendar } from 'lucide-react';
 import { Redirect } from 'wouter';
 
 export default function BusinessDashboard() {
@@ -70,25 +70,103 @@ export default function BusinessDashboard() {
           </div>
         </div>
 
-        {/* Analytics Section */}
-        {!statsLoading && stats ? (
+        {/* Performance Metrics */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {stats?.totalLeads || leads?.length || 0}
+                  </div>
+                  <div className="text-sm text-neutral-600">Total Leads</div>
+                </div>
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Users className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {statusCounts.won || 0}
+                  </div>
+                  <div className="text-sm text-neutral-600">Jobs Won</div>
+                </div>
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Award className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-purple-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    ${monthlyRevenue.toFixed(0)}
+                  </div>
+                  <div className="text-sm text-neutral-600">Revenue</div>
+                </div>
+                <div className="p-2 bg-purple-100 rounded-full">
+                  <DollarSign className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-orange-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {stats?.conversionRate ? `${(stats.conversionRate * 100).toFixed(1)}%` : '0%'}
+                  </div>
+                  <div className="text-sm text-neutral-600">Win Rate</div>
+                </div>
+                <div className="p-2 bg-orange-100 rounded-full">
+                  <TrendingUp className="h-5 w-5 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions for Contractors */}
+        <div className="bg-white rounded-lg shadow-sm border p-4 mb-8">
+          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button className="h-auto p-4 flex flex-col items-center space-y-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200">
+              <Users className="h-6 w-6" />
+              <span className="text-sm font-medium">Browse New Leads</span>
+            </Button>
+            
+            <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+              <DollarSign className="h-6 w-6" />
+              <span className="text-sm font-medium">Submit Quote</span>
+            </Button>
+            
+            <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+              <Calendar className="h-6 w-6" />
+              <span className="text-sm font-medium">Schedule Jobs</span>
+            </Button>
+            
+            <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
+              <Award className="h-6 w-6" />
+              <span className="text-sm font-medium">View Analytics</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Analytics Chart */}
+        {!statsLoading && stats && (
           <div className="mb-8">
             <AnalyticsChart stats={stats} />
-          </div>
-        ) : (
-          <div className="mb-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="animate-pulse">
-                  <div className="h-8 bg-neutral-200 rounded w-1/3 mb-4"></div>
-                  <div className="grid md:grid-cols-4 gap-6">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="h-24 bg-neutral-200 rounded"></div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         )}
 
