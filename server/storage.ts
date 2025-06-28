@@ -80,6 +80,11 @@ export interface IStorage {
   // Message methods
   getMessagesByProject(projectId: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  updateMessage(id: number, updates: Partial<InsertMessage>): Promise<Message>;
+  deleteMessage(id: number): Promise<void>;
+  markMessageAsRead(messageId: number): Promise<Message>;
+  markAllMessagesAsRead(projectId: number, userId: number): Promise<void>;
+  getUnreadMessageCount(projectId: number, userId: number): Promise<number>;
   
   // Favorite methods
   getFavoritesByHomeowner(homeownerId: number): Promise<Favorite[]>;
@@ -275,7 +280,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(messages)
       .where(eq(messages.projectId, projectId))
-      .orderBy(desc(messages.createdAt));
+      .orderBy(messages.createdAt);
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
@@ -284,6 +289,50 @@ export class DatabaseStorage implements IStorage {
       .values(insertMessage)
       .returning();
     return message;
+  }
+
+  async updateMessage(id: number, updates: Partial<InsertMessage>): Promise<Message> {
+    const [message] = await db
+      .update(messages)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(messages.id, id))
+      .returning();
+    return message;
+  }
+
+  async deleteMessage(id: number): Promise<void> {
+    await db.delete(messages).where(eq(messages.id, id));
+  }
+
+  async markMessageAsRead(messageId: number): Promise<Message> {
+    const [message] = await db
+      .update(messages)
+      .set({ isRead: true })
+      .where(eq(messages.id, messageId))
+      .returning();
+    return message;
+  }
+
+  async markAllMessagesAsRead(projectId: number, userId: number): Promise<void> {
+    await db
+      .update(messages)
+      .set({ isRead: true })
+      .where(and(
+        eq(messages.projectId, projectId),
+        eq(messages.receiverId, userId)
+      ));
+  }
+
+  async getUnreadMessageCount(projectId: number, userId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(messages)
+      .where(and(
+        eq(messages.projectId, projectId),
+        eq(messages.receiverId, userId),
+        eq(messages.isRead, false)
+      ));
+    return result[0]?.count || 0;
   }
 
   async getFavoritesByHomeowner(homeownerId: number): Promise<Favorite[]> {

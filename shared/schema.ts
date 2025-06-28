@@ -109,8 +109,13 @@ export const messages = pgTable("messages", {
   senderId: integer("sender_id").notNull().references(() => users.id),
   receiverId: integer("receiver_id").notNull().references(() => users.id),
   content: text("content").notNull(),
+  messageType: text("message_type").notNull().default("text"), // text, image, file, system
+  attachments: jsonb("attachments"), // Array of file URLs/metadata
   isRead: boolean("is_read").default(false),
+  editedAt: timestamp("edited_at"),
+  replyToId: integer("reply_to_id"), // For threading
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const favorites = pgTable("favorites", {
@@ -210,7 +215,7 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   }),
 }));
 
-export const messagesRelations = relations(messages, ({ one }) => ({
+export const messagesRelations = relations(messages, ({ one, many }) => ({
   project: one(projects, {
     fields: [messages.projectId],
     references: [projects.id],
@@ -225,6 +230,12 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     references: [users.id],
     relationName: "receivedMessages",
   }),
+  replyTo: one(messages, {
+    fields: [messages.replyToId],
+    references: [messages.id],
+    relationName: "replyTo",
+  }),
+  replies: many(messages, { relationName: "replyTo" }),
 }));
 
 export const favoritesRelations = relations(favorites, ({ one }) => ({

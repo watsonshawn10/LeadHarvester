@@ -173,6 +173,16 @@ TaskNab is a full-stack marketplace application that connects homeowners with ve
 - Added refund tracking fields to database schema (reason, amount, Stripe ID)
 - Implemented credit-based refund system for contractor balance restoration
 
+✓ **Real-Time Project Collaboration Chat** (June 28, 2025)
+- Built comprehensive real-time messaging system using WebSocket infrastructure
+- Created project-chat.tsx component with real-time messaging capabilities
+- Enhanced messaging storage with support for message types, attachments, and read status
+- Integrated chat functionality into project details page with tabbed interface
+- Added WebSocket server on distinct path (/ws) to avoid HMR conflicts
+- Implemented message threading, file attachments, and read receipts
+- Added separate chat interfaces for homeowners and contractors
+- Enhanced project details page with tabs for details, quotes, chat, and schedule
+
 ## Changelog
 ```
 Changelog:

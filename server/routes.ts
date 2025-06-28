@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { insertUserSchema, insertProjectSchema, insertLeadSchema, insertQuoteSchema, insertReviewSchema, insertMessageSchema } from "@shared/schema";
+import { insertUserSchema, insertProjectSchema, insertLeadSchema, insertQuoteSchema, insertReviewSchema, insertMessageSchema, Message, InsertUser } from "@shared/schema";
 import bcrypt from "bcrypt";
 import session from "express-session";
 import { z } from "zod";
@@ -202,6 +203,15 @@ async function distributeLeadsAutomatically(project: any) {
     console.error('Error in automatic lead distribution:', error);
   }
 }
+
+// WebSocket connection tracking
+interface WebSocketConnection {
+  ws: WebSocket;
+  userId: number;
+  projectId?: number;
+}
+
+const connections = new Map<string, WebSocketConnection>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Session configuration
@@ -1173,7 +1183,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get messages for a project with sender information
+  app.get("/api/messages/project/:projectId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const messages = await storage.getMessagesByProject(projectId);
+      
+      // Get sender information for each message
+      const messagesWithSenders = await Promise.all(
+        messages.map(async (message) => {
+          const sender = await storage.getUser(message.senderId);
+          return {
+            ...message,
+            sender: sender ? {
+              id: sender.id,
+              firstName: sender.firstName,
+              lastName: sender.lastName,
+              username: sender.username
+            } : null
+          };
+        })
+      );
+      
+      res.json(messagesWithSenders);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Mark message as read
+  app.patch("/api/messages/:id/read", async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.id);
+      const message = await storage.markMessageAsRead(messageId);
+      res.json(message);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Mark all messages in a project as read for a user
+  app.patch("/api/messages/project/:projectId/read-all", async (req, res) => {
+    try {
+      if (!req.session.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const projectId = parseInt(req.params.projectId);
+      await storage.markAllMessagesAsRead(projectId, req.session.user.id);
+      res.json({ message: "All messages marked as read" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get unread message count for a project
+  app.get("/api/messages/project/:projectId/unread-count", async (req, res) => {
+    try {
+      if (!req.session.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const projectId = parseInt(req.params.projectId);
+      const count = await storage.getUnreadMessageCount(projectId, req.session.user.id);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
+
+  // Create WebSocket server
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection');
+    
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        switch (message.type) {
+          case 'authenticate':
+            // Store connection with user info
+            const connectionId = `${Date.now()}-${Math.random()}`;
+            connections.set(connectionId, {
+              ws,
+              userId: message.userId,
+              projectId: message.projectId
+            });
+            
+            ws.send(JSON.stringify({
+              type: 'authenticated',
+              connectionId
+            }));
+            break;
+            
+          case 'join_project':
+            // Update connection with project ID
+            for (const [id, conn] of Array.from(connections.entries())) {
+              if (conn.ws === ws) {
+                conn.projectId = message.projectId;
+                break;
+              }
+            }
+            
+            ws.send(JSON.stringify({
+              type: 'joined_project',
+              projectId: message.projectId
+            }));
+            break;
+            
+          case 'send_message':
+            // Save message to database
+            const newMessage = await storage.createMessage({
+              projectId: message.projectId,
+              senderId: message.senderId,
+              receiverId: message.receiverId,
+              content: message.content,
+              messageType: message.messageType || 'text',
+              attachments: message.attachments
+            });
+            
+            // Broadcast to all connections in the same project
+            const messageData = {
+              type: 'new_message',
+              message: newMessage
+            };
+            
+            for (const [id, conn] of Array.from(connections.entries())) {
+              if (conn.projectId === message.projectId && conn.ws.readyState === WebSocket.OPEN) {
+                conn.ws.send(JSON.stringify(messageData));
+              }
+            }
+            break;
+            
+          case 'typing':
+            // Broadcast typing indicator to other users in the project
+            const typingData = {
+              type: 'user_typing',
+              userId: message.userId,
+              projectId: message.projectId,
+              isTyping: message.isTyping
+            };
+            
+            for (const [id, conn] of Array.from(connections.entries())) {
+              if (conn.projectId === message.projectId && 
+                  conn.userId !== message.userId && 
+                  conn.ws.readyState === WebSocket.OPEN) {
+                conn.ws.send(JSON.stringify(typingData));
+              }
+            }
+            break;
+            
+          case 'mark_read':
+            // Mark message as read
+            await storage.markMessageAsRead(message.messageId);
+            
+            // Broadcast read status to sender
+            const readData = {
+              type: 'message_read',
+              messageId: message.messageId,
+              readBy: message.userId
+            };
+            
+            for (const [id, conn] of Array.from(connections.entries())) {
+              if (conn.projectId === message.projectId && conn.ws.readyState === WebSocket.OPEN) {
+                conn.ws.send(JSON.stringify(readData));
+              }
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Invalid message format'
+        }));
+      }
+    });
+    
+    ws.on('close', () => {
+      // Remove connection from tracking
+      for (const [id, conn] of Array.from(connections.entries())) {
+        if (conn.ws === ws) {
+          connections.delete(id);
+          break;
+        }
+      }
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
 
   return httpServer;
 }

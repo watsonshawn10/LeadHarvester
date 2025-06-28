@@ -7,13 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/lib/auth';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { Project, Quote, Message } from '@/types';
+import { Project, Quote } from '@/types';
+import ProjectChat from '@/components/project-chat';
 import { 
   MapPin, 
   Clock, 
@@ -56,10 +58,7 @@ export default function ProjectDetails() {
     enabled: !!id,
   });
 
-  const { data: messages, isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages/project', id],
-    enabled: !!id,
-  });
+  // Messages are now handled by the ProjectChat component
 
   const quoteForm = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
@@ -244,8 +243,21 @@ export default function ProjectDetails() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Project Description */}
-            <Card>
+            {/* Project Tabs */}
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="details">Project Details</TabsTrigger>
+                <TabsTrigger value="quotes">Quotes ({quotes?.length || 0})</TabsTrigger>
+                <TabsTrigger value="chat">
+                  <MessageSquare className="w-4 h-4 mr-1" />
+                  Chat
+                </TabsTrigger>
+                <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="space-y-6">
+                {/* Project Description */}
+                <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <FileText className="mr-2 h-5 w-5" />
@@ -434,6 +446,183 @@ export default function ProjectDetails() {
                 </CardContent>
               </Card>
             )}
+              </TabsContent>
+
+              <TabsContent value="quotes" className="space-y-6">
+                {/* Quotes Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Project Quotes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {quotes && quotes.length > 0 ? (
+                      <div className="space-y-4">
+                        {quotes.map((quote) => (
+                          <div key={quote.id} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h4 className="font-semibold text-lg">${quote.amount}</h4>
+                                <p className="text-sm text-neutral-600">
+                                  Status: <span className="capitalize">{quote.status}</span>
+                                </p>
+                              </div>
+                              <Badge variant={quote.status === 'accepted' ? 'default' : 'secondary'}>
+                                {quote.status}
+                              </Badge>
+                            </div>
+                            {quote.description && (
+                              <p className="text-neutral-700 mb-3">{quote.description}</p>
+                            )}
+                            {quote.timeline && (
+                              <div className="flex items-center text-sm text-neutral-500">
+                                <Calendar className="h-4 w-4 mr-1" />
+                                <span>Timeline: {quote.timeline}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <DollarSign className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-neutral-800 mb-2">No quotes yet</h3>
+                        <p className="text-neutral-600">
+                          {canSubmitQuote 
+                            ? 'Be the first to submit a quote for this project!'
+                            : 'Contractors will submit quotes for this project soon.'
+                          }
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Submit Quote Form (Service Providers Only) */}
+                {canSubmitQuote && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Submit a Quote</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Form {...quoteForm}>
+                        <form onSubmit={quoteForm.handleSubmit(onSubmitQuote)} className="space-y-4">
+                          <FormField
+                            control={quoteForm.control}
+                            name="amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Quote Amount ($)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Enter your quote amount"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={quoteForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Describe your proposed solution and approach..."
+                                    className="min-h-[100px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={quoteForm.control}
+                            name="timeline"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Estimated Timeline</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="e.g., 2-3 weeks"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <Button 
+                            type="submit" 
+                            className="w-full bg-secondary text-white hover:bg-green-600"
+                            disabled={createQuoteMutation.isPending}
+                          >
+                            {createQuoteMutation.isPending ? 'Submitting...' : 'Submit Quote'}
+                          </Button>
+                        </form>
+                      </Form>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="chat" className="space-y-6">
+                {/* Real-time Chat */}
+                {user.userType === 'service_provider' && (
+                  <ProjectChat 
+                    projectId={project.id} 
+                    receiverId={project.homeownerId} 
+                    receiverName="Homeowner"
+                  />
+                )}
+                {user.userType === 'homeowner' && quotes && quotes.length > 0 && (
+                  <div className="space-y-4">
+                    {quotes.map((quote) => (
+                      <ProjectChat 
+                        key={quote.id}
+                        projectId={project.id} 
+                        receiverId={quote.serviceProviderId} 
+                        receiverName={`Contractor (Quote: $${quote.amount})`}
+                      />
+                    ))}
+                  </div>
+                )}
+                {user.userType === 'homeowner' && (!quotes || quotes.length === 0) && (
+                  <Card>
+                    <CardContent className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-neutral-800 mb-2">No conversations yet</h3>
+                      <p className="text-neutral-600">
+                        Chat will be available once contractors submit quotes for your project.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="schedule" className="space-y-6">
+                {/* Schedule Content */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Project Schedule</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-neutral-600">
+                      Schedule appointments and track project milestones here.
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Sidebar */}
