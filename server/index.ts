@@ -81,23 +81,37 @@ app.use((req, res, next) => {
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
     const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`serving on port ${port} in ${process.env.NODE_ENV} mode`);
-    });
-
-    // Handle uncaught exceptions
+    
+    // Handle uncaught exceptions before starting server
     process.on('uncaughtException', (error) => {
       log(`Uncaught Exception: ${error.message}`, "error");
       console.error(error);
+      if (process.env.NODE_ENV === "production") {
+        // In production, try to gracefully shutdown
+        setTimeout(() => process.exit(1), 1000);
+      } else {
+        process.exit(1);
+      }
     });
 
     process.on('unhandledRejection', (reason, promise) => {
       log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, "error");
       console.error(reason);
+    });
+
+    // Start server with error handling
+    server.listen(port, "0.0.0.0", () => {
+      log(`serving on port ${port} in ${process.env.NODE_ENV} mode`);
+    }).on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        log(`Port ${port} is already in use. Server cannot start.`, "error");
+        console.error(`Error: Port ${port} is already in use`);
+        process.exit(1);
+      } else {
+        log(`Server error: ${error.message}`, "error");
+        console.error(error);
+        process.exit(1);
+      }
     });
 
   } catch (startupError: unknown) {
