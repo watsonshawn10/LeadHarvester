@@ -1264,6 +1264,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contractor verification submission
+  app.post("/api/verify-contractor", async (req, res) => {
+    try {
+      if (!req.session.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (req.session.user.userType !== 'service_provider') {
+        return res.status(403).json({ message: "Only contractors can submit verification" });
+      }
+
+      const { licenseNumber, insuranceProvider, businessDescription, yearsExperience } = req.body;
+
+      if (!licenseNumber || !insuranceProvider || !businessDescription || !yearsExperience) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Update user profile with verification information
+      const updatedUser = await storage.updateUser(req.session.user.id, {
+        licenseNumber,
+        insuranceProvider,
+        businessDescription,
+        yearsExperience,
+        verificationStatus: 'pending', // pending, verified, rejected
+        verificationSubmittedAt: new Date()
+      });
+
+      res.json({ 
+        message: "Verification submitted successfully",
+        user: updatedUser 
+      });
+    } catch (error: any) {
+      console.error('Verification submission error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Create WebSocket server

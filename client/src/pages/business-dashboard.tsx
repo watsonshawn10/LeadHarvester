@@ -6,14 +6,65 @@ import AnalyticsChart from '@/components/analytics-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { Lead, AnalyticsStats } from '@/types';
-import { DollarSign, TrendingUp, Users, Award, Filter, Calendar } from 'lucide-react';
+import { DollarSign, TrendingUp, Users, Award, Filter, Calendar, Upload, FileText, Shield, CheckCircle } from 'lucide-react';
 import { Redirect } from 'wouter';
 
 export default function BusinessDashboard() {
   const { user } = useAuth();
   const [leadFilter, setLeadFilter] = useState('all');
+  
+  // Verification states
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [insuranceProvider, setInsuranceProvider] = useState('');
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [yearsExperience, setYearsExperience] = useState('');
+  const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
+
+  const handleVerificationSubmit = async () => {
+    if (!licenseNumber || !insuranceProvider || !businessDescription || !yearsExperience) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmittingVerification(true);
+    
+    try {
+      const response = await fetch('/api/verify-contractor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          licenseNumber,
+          insuranceProvider,
+          businessDescription,
+          yearsExperience: parseInt(yearsExperience),
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to submit verification');
+
+      // Reset form and close dialog
+      setLicenseNumber('');
+      setInsuranceProvider('');
+      setBusinessDescription('');
+      setYearsExperience('');
+      setShowVerificationDialog(false);
+      
+      alert('Verification submitted successfully! We\'ll review your information within 24-48 hours.');
+      
+    } catch (error) {
+      console.error('Error submitting verification:', error);
+      alert('Failed to submit verification. Please try again.');
+    } finally {
+      setIsSubmittingVerification(false);
+    }
+  };
 
   const { data: leads, isLoading: leadsLoading } = useQuery<Lead[]>({
     queryKey: ['/api/leads/my'],
@@ -295,9 +346,103 @@ export default function BusinessDashboard() {
               <Award className="h-8 w-8 text-yellow-600 mx-auto mb-3" />
               <h3 className="font-semibold text-neutral-800 mb-2">Get Verified</h3>
               <p className="text-sm text-neutral-600 mb-4">Upload license and insurance for better leads</p>
-              <Button variant="outline" className="w-full">
-                Get Verified
-              </Button>
+              
+              <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Get Verified
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center">
+                      <Shield className="mr-2 h-5 w-5 text-yellow-600" />
+                      Professional Verification
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="license-number">License Number *</Label>
+                      <Input
+                        id="license-number"
+                        placeholder="e.g., LIC-123456"
+                        value={licenseNumber}
+                        onChange={(e) => setLicenseNumber(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="insurance-provider">Insurance Provider *</Label>
+                      <Input
+                        id="insurance-provider"
+                        placeholder="e.g., State Farm Business Insurance"
+                        value={insuranceProvider}
+                        onChange={(e) => setInsuranceProvider(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="years-experience">Years of Experience *</Label>
+                      <Input
+                        id="years-experience"
+                        type="number"
+                        placeholder="e.g., 10"
+                        value={yearsExperience}
+                        onChange={(e) => setYearsExperience(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="business-description">Business Description *</Label>
+                      <Textarea
+                        id="business-description"
+                        placeholder="Describe your business, specialties, and service areas..."
+                        value={businessDescription}
+                        onChange={(e) => setBusinessDescription(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <FileText className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+                        <div className="text-sm text-blue-800">
+                          <p className="font-medium mb-1">Next Steps:</p>
+                          <p>After submitting this information, our team will review your credentials and contact you within 24-48 hours for document verification.</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowVerificationDialog(false)}
+                        disabled={isSubmittingVerification}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleVerificationSubmit}
+                        disabled={!licenseNumber || !insuranceProvider || !businessDescription || !yearsExperience || isSubmittingVerification}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                      >
+                        {isSubmittingVerification ? (
+                          <>
+                            <Upload className="mr-2 h-4 w-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Submit for Verification
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </div>
