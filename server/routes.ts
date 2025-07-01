@@ -974,27 +974,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Scheduling endpoints
-  app.get('/api/appointments', async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
+  app.get('/api/appointments', requireAuth, async (req: any, res) => {
     try {
-      const appointments = await storage.getAppointmentsByUser(req.user!.id);
+      const appointments = await storage.getAppointmentsByUser(req.user.id);
       res.json(appointments);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post('/api/appointments', async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
+  app.post('/api/appointments', requireAuth, async (req: any, res) => {
     try {
       const appointmentData = req.body;
-      appointmentData.homeownerId = req.user!.id;
+      appointmentData.homeownerId = req.user.id;
       
       const appointment = await storage.createAppointment(appointmentData);
       res.json(appointment);
@@ -1003,10 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/appointments/:id', async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
+  app.patch('/api/appointments/:id', requireAuth, async (req: any, res) => {
 
     try {
       const appointmentId = parseInt(req.params.id);
@@ -1016,6 +1005,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(appointment);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/projects', requireAuth, async (req: any, res) => {
+    try {
+      if (req.user.userType === 'homeowner') {
+        const projects = await storage.getProjectsByHomeowner(req.user.id);
+        res.json(projects);
+      } else {
+        const projects = await storage.getActiveProjects();
+        res.json(projects);
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
@@ -1044,14 +1047,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/availability', async (req, res) => {
-    if (!req.isAuthenticated() || req.user!.userType !== 'service_provider') {
+  app.post('/api/availability', requireAuth, async (req: any, res) => {
+    if (req.user.userType !== 'service_provider') {
       return res.status(403).json({ message: 'Service provider access required' });
     }
 
     try {
       const availabilityData = req.body;
-      availabilityData.serviceProviderId = req.user!.id;
+      availabilityData.serviceProviderId = req.user.id;
       
       const availability = await storage.setAvailability(availabilityData);
       res.json(availability);
@@ -1060,13 +1063,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/availability', async (req, res) => {
-    if (!req.isAuthenticated() || req.user!.userType !== 'service_provider') {
+  app.get('/api/availability', requireAuth, async (req: any, res) => {
+    if (req.user.userType !== 'service_provider') {
       return res.status(403).json({ message: 'Service provider access required' });
     }
 
     try {
-      const availability = await storage.getAvailability(req.user!.id);
+      const availability = await storage.getAvailability(req.user.id);
       res.json(availability);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
