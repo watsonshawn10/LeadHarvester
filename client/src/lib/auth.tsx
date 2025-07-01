@@ -23,8 +23,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    if (authData?.user) {
-      setUser(authData.user);
+    if (authData) {
+      try {
+        setUser((authData as any).user || null);
+      } catch (error) {
+        setUser(null);
+      }
     }
   }, [authData]);
 
@@ -57,6 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       setUser(null);
       queryClient.clear();
+      // Force a page refresh to ensure complete logout
+      window.location.href = '/';
+    },
+    onError: (error) => {
+      console.error('Logout error:', error);
+      // Even if logout fails, clear local state and redirect
+      setUser(null);
+      queryClient.clear();
+      window.location.href = '/';
     },
   });
 
