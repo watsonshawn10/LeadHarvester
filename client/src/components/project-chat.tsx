@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MessageSquare, Clock, Check, CheckCheck } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Send, MessageSquare, Clock, Check, CheckCheck, DollarSign, FileText, Calendar } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { formatTimeAgo } from '@/lib/utils';
 
@@ -43,6 +46,13 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Quote submission state
+  const [showQuoteDialog, setShowQuoteDialog] = useState(false);
+  const [quoteAmount, setQuoteAmount] = useState('');
+  const [quoteDescription, setQuoteDescription] = useState('');
+  const [quoteTimeline, setQuoteTimeline] = useState('');
+  const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -205,6 +215,54 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
     }
   };
 
+  const handleSubmitQuote = async () => {
+    if (!quoteAmount || !quoteDescription || !user) return;
+    
+    setIsSubmittingQuote(true);
+    
+    try {
+      // Create the quote in the database
+      const response = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          serviceProviderId: user.id,
+          amount: parseFloat(quoteAmount),
+          description: quoteDescription,
+          timeline: quoteTimeline || 'To be discussed'
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to submit quote');
+      
+      // Send quote notification message via WebSocket
+      if (ws) {
+        const quoteMessage = {
+          type: 'send_message',
+          projectId,
+          senderId: user.id,
+          receiverId,
+          content: `💰 New Quote Submitted\n\nAmount: $${quoteAmount}\nDescription: ${quoteDescription}\nTimeline: ${quoteTimeline || 'To be discussed'}`,
+          messageType: 'quote'
+        };
+        
+        ws.send(JSON.stringify(quoteMessage));
+      }
+      
+      // Reset form and close dialog
+      setQuoteAmount('');
+      setQuoteDescription('');
+      setQuoteTimeline('');
+      setShowQuoteDialog(false);
+      
+    } catch (error) {
+      console.error('Error submitting quote:', error);
+    } finally {
+      setIsSubmittingQuote(false);
+    }
+  };
+
   const markAsRead = (messageId: number) => {
     if (!ws || !user) return;
 
@@ -262,11 +320,21 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
                       
                       <div
                         className={`rounded-lg px-3 py-2 max-w-full ${
-                          isOwnMessage
+                          message.messageType === 'quote'
+                            ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-gray-900 border border-green-200'
+                            : isOwnMessage
                             ? 'bg-blue-500 text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
+                        {message.messageType === 'quote' && (
+                          <div className="flex items-center mb-2">
+                            <DollarSign className="w-4 h-4 text-green-600 mr-1" />
+                            <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
+                              Quote Submitted
+                            </Badge>
+                          </div>
+                        )}
                         <p className="text-sm whitespace-pre-wrap break-words">
                           {message.content}
                         </p>
@@ -323,6 +391,70 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
               disabled={!isConnected}
               className="flex-1"
             />
+            
+            {/* Show quote button only for service providers */}
+            {user?.userType === 'service_provider' && (
+              <Dialog open={showQuoteDialog} onOpenChange={setShowQuoteDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={!isConnected}>
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    Quote
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Submit Quote</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="quote-amount">Quote Amount ($)</Label>
+                      <Input
+                        id="quote-amount"
+                        type="number"
+                        placeholder="1500"
+                        value={quoteAmount}
+                        onChange={(e) => setQuoteAmount(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quote-description">Work Description</Label>
+                      <Textarea
+                        id="quote-description"
+                        placeholder="Describe the work to be done..."
+                        value={quoteDescription}
+                        onChange={(e) => setQuoteDescription(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quote-timeline">Timeline</Label>
+                      <Input
+                        id="quote-timeline"
+                        placeholder="2-3 weeks"
+                        value={quoteTimeline}
+                        onChange={(e) => setQuoteTimeline(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowQuoteDialog(false)}
+                        disabled={isSubmittingQuote}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleSubmitQuote}
+                        disabled={!quoteAmount || !quoteDescription || isSubmittingQuote}
+                      >
+                        {isSubmittingQuote ? 'Submitting...' : 'Submit Quote'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            
             <Button 
               onClick={handleSendMessage}
               disabled={!newMessage.trim() || !isConnected}
