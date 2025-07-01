@@ -10,7 +10,13 @@ export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      await logout();
+    } catch (error) {
+      // Force logout even if it fails
+      console.log('Forcing logout due to error');
+      window.location.href = '/';
+    }
     setMobileMenuOpen(false);
   };
 

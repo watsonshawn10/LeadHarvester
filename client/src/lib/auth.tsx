@@ -82,7 +82,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await logoutMutation.mutateAsync();
+    try {
+      await logoutMutation.mutateAsync();
+    } catch (error) {
+      // Even if the server logout fails, clear local state
+      console.log('Logout error, clearing local state anyway');
+      setUser(null);
+      queryClient.clear();
+      window.location.href = '/';
+    }
   };
 
   return (
