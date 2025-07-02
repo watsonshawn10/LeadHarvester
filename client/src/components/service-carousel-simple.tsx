@@ -29,8 +29,6 @@ export default function ServiceCarouselSimple() {
     select: (data: ServiceCategory[]) => data.slice(0, 8), // Limit to 8 services for carousel
   });
 
-  console.log('ServiceCarousel - services:', services, 'loading:', isLoading, 'error:', error);
-
   const itemsPerView = 3;
   const maxIndex = Math.max(0, services.length - itemsPerView);
 

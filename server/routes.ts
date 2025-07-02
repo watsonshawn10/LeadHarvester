@@ -888,7 +888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Interior and exterior painting services",
         basePrice: 22,
         prosAvailable: 1247,
-        image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 2,
@@ -896,7 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Full kitchen remodeling and design",
         basePrice: 45,
         prosAvailable: 634,
-        image: "https://images.unsplash.com/photo-1556912173-3bb406ef7e77?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 3,
@@ -904,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Complete basement renovation services", 
         basePrice: 35,
         prosAvailable: 892,
-        image: "https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 4,
@@ -912,7 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Licensed electrical installation and repair",
         basePrice: 25,
         prosAvailable: 987,
-        image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 5,
@@ -920,7 +920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Installation, repair, and maintenance",
         basePrice: 20,
         prosAvailable: 1543,
-        image: "https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 6,
@@ -928,7 +928,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Garden design and outdoor maintenance", 
         basePrice: 18,
         prosAvailable: 756,
-        image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1558904541-efa843a96f01?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 7,
@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Roof repair, replacement, and maintenance",
         basePrice: 55,
         prosAvailable: 423,
-        image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 8,
@@ -944,7 +944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Hardwood, tile, carpet installation",
         basePrice: 30,
         prosAvailable: 678,
-        image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 9,
@@ -952,7 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Heating, cooling system installation and repair",
         basePrice: 40,
         prosAvailable: 534,
-        image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 10,
@@ -960,7 +960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "General repairs and maintenance tasks",
         basePrice: 12,
         prosAvailable: 2156,
-        image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1609205264831-9e468b4ab3fe?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 11,
@@ -968,7 +968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Residential and commercial cleaning",
         basePrice: 8,
         prosAvailable: 1834,
-        image: "https://images.unsplash.com/photo-1563453392212-326f5e854473?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1581578949088-d3b7ab36d1e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 12,
@@ -976,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Insect and rodent control services",
         basePrice: 15,
         prosAvailable: 567,
-        image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1544954958-6f0245b1ec8e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       },
       {
         id: 13,
@@ -984,7 +984,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Holiday lighting installation and removal",
         basePrice: 18,
         prosAvailable: 234,
-        image: "https://images.unsplash.com/photo-1512389142860-9c449e58a543?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
+        image: "https://images.unsplash.com/photo-1576919228236-a097c32a5cd4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=240"
       }
     ];
     res.json(categories);

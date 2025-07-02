@@ -203,6 +203,16 @@ TaskNab is a full-stack marketplace application that connects homeowners with ve
 - Enhanced authentication flow to respect user-specific redirect preferences
 - Updated logout behavior to redirect to sign-in page by default instead of homepage
 
+✓ **Animated Service Recommendation Carousel** (July 2, 2025)
+- Created responsive service carousel with smooth animations and auto-rotation
+- Integrated with service categories API for real-time data display
+- Added navigation controls with left/right arrows and dot indicators
+- Implemented auto-pause on hover and manual play/pause controls
+- Featured service-specific Unsplash images that accurately represent each service type
+- Added hover effects, rating displays, and pricing information
+- Positioned prominently on home page between hero section and service categories
+- Enhanced service discovery with visual service cards and "Get Quotes" call-to-action buttons
+
 ## Changelog
 ```
 Changelog:
