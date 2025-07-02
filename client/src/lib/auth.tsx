@@ -56,20 +56,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('POST', '/api/auth/logout');
+      const response = await apiRequest('POST', '/api/auth/logout');
+      return response.json();
     },
     onSuccess: () => {
       setUser(null);
       queryClient.clear();
-      // Force a page refresh to ensure complete logout
-      window.location.href = '/';
+      // Clear any cached data and redirect
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     },
     onError: (error) => {
       console.error('Logout error:', error);
       // Even if logout fails, clear local state and redirect
       setUser(null);
       queryClient.clear();
-      window.location.href = '/';
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     },
   });
 

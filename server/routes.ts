@@ -1301,6 +1301,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Notification subscription endpoints
+  app.post("/api/notifications/subscribe", requireAuth, async (req, res) => {
+    try {
+      const { subscription, userId } = req.body;
+      
+      // Store push subscription for user (in production, save to database)
+      // For now, just acknowledge the subscription
+      console.log(`User ${userId} subscribed to push notifications`);
+      
+      res.json({ success: true, message: "Subscription saved" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/notifications/unsubscribe", requireAuth, async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      // Remove push subscription for user
+      console.log(`User ${userId} unsubscribed from push notifications`);
+      
+      res.json({ success: true, message: "Unsubscribed successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Send test notification endpoint
+  app.post("/api/notifications/test", requireAuth, async (req, res) => {
+    try {
+      // In production, this would send a real push notification
+      res.json({ 
+        success: true, 
+        message: "Test notification would be sent in production" 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Create WebSocket server

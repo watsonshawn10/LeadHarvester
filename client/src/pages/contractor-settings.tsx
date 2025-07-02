@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import Navigation from '@/components/navigation';
+import NotificationSettings from '@/components/notification-settings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -508,6 +509,9 @@ export default function ContractorSettings() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Notification Settings */}
+            <NotificationSettings />
           </div>
 
           {/* Settings */}
