@@ -40,6 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (data) => {
       setUser(data.user);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      // Handle redirect based on user preferences
+      if (data.redirectPath) {
+        setTimeout(() => {
+          window.location.href = data.redirectPath;
+        }, 100);
+      }
     },
   });
 
@@ -59,12 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiRequest('POST', '/api/auth/logout');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setUser(null);
       queryClient.clear();
-      // Clear any cached data and redirect
+      // Clear any cached data and redirect based on user preference
+      const redirectPath = data?.redirectPath || '/';
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = redirectPath;
       }, 100);
     },
     onError: (error) => {

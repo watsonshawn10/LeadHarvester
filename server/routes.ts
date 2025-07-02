@@ -285,14 +285,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userType: user.userType,
       };
 
-      res.json({ user: req.session!.user });
+      // Determine redirect path based on user preferences
+      let redirectPath = '/';
+      if (user.loginRedirectPreference) {
+        switch (user.loginRedirectPreference) {
+          case 'dashboard':
+            redirectPath = user.userType === 'homeowner' ? '/homeowner-dashboard' : '/business-dashboard';
+            break;
+          case 'marketplace':
+            redirectPath = '/lead-marketplace';
+            break;
+          case 'home':
+            redirectPath = '/';
+            break;
+          default:
+            redirectPath = user.userType === 'homeowner' ? '/homeowner-dashboard' : '/business-dashboard';
+        }
+      } else {
+        // Default behavior - redirect to appropriate dashboard
+        redirectPath = user.userType === 'homeowner' ? '/homeowner-dashboard' : '/business-dashboard';
+      }
+
+      res.json({ 
+        user: req.session!.user,
+        redirectPath 
+      });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
   });
 
   // Logout handler function
-  const handleLogout = (req: any, res: any) => {
+  const handleLogout = async (req: any, res: any) => {
+    let redirectPath = '/'; // Default redirect
+    
+    // Get user preferences before destroying session
+    if (req.session?.user) {
+      try {
+        const user = await storage.getUser(req.session.user.id);
+        if (user?.logoutRedirectPreference) {
+          redirectPath = user.logoutRedirectPreference === 'login' ? '/auth' : '/';
+        }
+      } catch (error) {
+        console.error('Error fetching logout preferences:', error);
+      }
+    }
+    
     if (req.session) {
       req.session.destroy((err: any) => {
         if (err) {
@@ -301,19 +339,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         res.clearCookie('connect.sid'); // Clear the session cookie
         
-        // For GET requests, redirect to home page
+        // For GET requests, redirect based on user preference
         if (req.method === 'GET') {
-          res.redirect('/');
+          res.redirect(redirectPath);
         } else {
-          res.json({ success: true });
+          res.json({ success: true, redirectPath });
         }
       });
     } else {
-      // For GET requests, redirect to home page even if no session
+      // For GET requests, redirect based on preference even if no session
       if (req.method === 'GET') {
-        res.redirect('/');
+        res.redirect(redirectPath);
       } else {
-        res.json({ success: true });
+        res.json({ success: true, redirectPath });
       }
     }
   };
@@ -1312,6 +1350,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('Verification submission error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // User preferences endpoints
+  app.get("/api/users/preferences", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req as any).user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const preferences = {
+        loginRedirectPreference: user.loginRedirectPreference,
+        logoutRedirectPreference: user.logoutRedirectPreference,
+        rememberMeDefault: user.rememberMeDefault,
+        sessionTimeout: user.sessionTimeout,
+        autoLogoutEnabled: user.autoLogoutEnabled,
+        autoLogoutMinutes: user.autoLogoutMinutes,
+        showLogoutConfirmation: user.showLogoutConfirmation,
+      };
+
+      res.json(preferences);
+    } catch (error: any) {
+      console.error('Error fetching user preferences:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/users/preferences", requireAuth, async (req, res) => {
+    try {
+      const {
+        loginRedirectPreference,
+        logoutRedirectPreference,
+        rememberMeDefault,
+        sessionTimeout,
+        autoLogoutEnabled,
+        autoLogoutMinutes,
+        showLogoutConfirmation,
+      } = req.body;
+
+      // Validate preferences
+      const validLoginRedirects = ['dashboard', 'home', 'marketplace', 'last-page'];
+      const validLogoutRedirects = ['home', 'login'];
+
+      if (loginRedirectPreference && !validLoginRedirects.includes(loginRedirectPreference)) {
+        return res.status(400).json({ message: "Invalid login redirect preference" });
+      }
+
+      if (logoutRedirectPreference && !validLogoutRedirects.includes(logoutRedirectPreference)) {
+        return res.status(400).json({ message: "Invalid logout redirect preference" });
+      }
+
+      if (sessionTimeout && (sessionTimeout < 1 || sessionTimeout > 168)) {
+        return res.status(400).json({ message: "Session timeout must be between 1-168 hours" });
+      }
+
+      if (autoLogoutMinutes && (autoLogoutMinutes < 5 || autoLogoutMinutes > 240)) {
+        return res.status(400).json({ message: "Auto-logout time must be between 5-240 minutes" });
+      }
+
+      const updatedUser = await storage.updateUser((req as any).user.id, {
+        loginRedirectPreference,
+        logoutRedirectPreference,
+        rememberMeDefault,
+        sessionTimeout,
+        autoLogoutEnabled,
+        autoLogoutMinutes,
+        showLogoutConfirmation,
+      });
+
+      const preferences = {
+        loginRedirectPreference: updatedUser.loginRedirectPreference,
+        logoutRedirectPreference: updatedUser.logoutRedirectPreference,
+        rememberMeDefault: updatedUser.rememberMeDefault,
+        sessionTimeout: updatedUser.sessionTimeout,
+        autoLogoutEnabled: updatedUser.autoLogoutEnabled,
+        autoLogoutMinutes: updatedUser.autoLogoutMinutes,
+        showLogoutConfirmation: updatedUser.showLogoutConfirmation,
+      };
+
+      res.json(preferences);
+    } catch (error: any) {
+      console.error('Error updating user preferences:', error);
       res.status(500).json({ message: error.message });
     }
   });

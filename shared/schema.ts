@@ -40,6 +40,16 @@ export const users = pgTable("users", {
   lastWeeklyReset: timestamp("last_weekly_reset"),
   canReceiveFreeLeads: boolean("can_receive_free_leads").default(false),
   freeLeadsRemaining: integer("free_leads_remaining").default(0),
+  
+  // Login/Logout Preferences
+  loginRedirectPreference: text("login_redirect_preference").default("dashboard"), // 'dashboard' | 'home' | 'marketplace' | 'last-page'
+  logoutRedirectPreference: text("logout_redirect_preference").default("home"), // 'home' | 'login'
+  rememberMeDefault: boolean("remember_me_default").default(true),
+  sessionTimeout: integer("session_timeout").default(24), // hours
+  autoLogoutEnabled: boolean("auto_logout_enabled").default(false),
+  autoLogoutMinutes: integer("auto_logout_minutes").default(30),
+  showLogoutConfirmation: boolean("show_logout_confirmation").default(false),
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
 

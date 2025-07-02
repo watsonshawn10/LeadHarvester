@@ -95,6 +95,11 @@ export default function Navigation() {
                     </Link>
                   </>
                 )}
+                <Link href="/preferences">
+                  <Button variant="ghost" className="text-neutral-600 hover:text-primary">
+                    Preferences
+                  </Button>
+                </Link>
                 {user.userType === 'admin' && (
                   <Link href="/admin">
                     <Button variant="ghost" className="text-orange-600 hover:text-orange-700 font-medium">
@@ -172,6 +177,11 @@ export default function Navigation() {
                       </Link>
                     </>
                   )}
+                  <Link href="/preferences">
+                    <span className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium cursor-pointer">
+                      Preferences
+                    </span>
+                  </Link>
                   <a
                     href="/api/auth/logout"
                     className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium w-full text-left"
