@@ -93,7 +93,19 @@ export default function Navigation() {
                     </Button>
                   </Link>
                 )}
-                <Button onClick={handleLogout} variant="ghost" className="text-neutral-600 hover:text-primary">
+                <Button 
+                  onClick={() => {
+                    // Force immediate logout without waiting for anything
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    document.cookie.split(";").forEach(c => { 
+                      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                    });
+                    window.location.replace('/auth');
+                  }} 
+                  variant="ghost" 
+                  className="text-neutral-600 hover:text-primary"
+                >
                   Sign Out
                 </Button>
               </>
@@ -161,7 +173,14 @@ export default function Navigation() {
                     </>
                   )}
                   <button
-                    onClick={handleLogout}
+                    onClick={() => {
+                      localStorage.clear();
+                      sessionStorage.clear();
+                      document.cookie.split(";").forEach(c => { 
+                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                      });
+                      window.location.replace('/auth');
+                    }}
                     className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium w-full text-left"
                   >
                     Sign Out
