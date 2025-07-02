@@ -1,5 +1,6 @@
 import Navigation from '@/components/navigation';
 import HeroSection from '@/components/hero-section';
+import ServiceCarousel from '@/components/service-carousel';
 import ServiceCategories from '@/components/service-categories';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,12 @@ export default function Home() {
     <div className="min-h-screen bg-neutral-50">
       <Navigation />
       <HeroSection />
+      
+      {/* Service Recommendation Carousel */}
+      <section className="py-16 bg-gradient-to-b from-white to-neutral-50">
+        <ServiceCarousel />
+      </section>
+      
       <ServiceCategories />
       
       {/* Trust Section */}
