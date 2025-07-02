@@ -27,10 +27,12 @@ export default function ServiceCarousel() {
   const [direction, setDirection] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  const { data: services = [], isLoading } = useQuery({
+  const { data: services = [], isLoading, error } = useQuery({
     queryKey: ['/api/service-categories'],
     select: (data: ServiceCategory[]) => data.slice(0, 8), // Limit to 8 services for carousel
   });
+
+  console.log('ServiceCarousel - services:', services, 'loading:', isLoading, 'error:', error);
 
   const itemsPerView = 3;
   const maxIndex = Math.max(0, services.length - itemsPerView);
