@@ -107,12 +107,12 @@ export default function Navigation() {
                     </Button>
                   </Link>
                 )}
-                <a 
-                  href="/api/auth/logout"
+                <button 
+                  onClick={() => logout()}
                   className="px-3 py-2 text-sm font-medium text-neutral-600 hover:text-primary"
                 >
                   Sign Out
-                </a>
+                </button>
               </>
             ) : (
               <>
@@ -182,12 +182,12 @@ export default function Navigation() {
                       Preferences
                     </span>
                   </Link>
-                  <a
-                    href="/api/auth/logout"
+                  <button
+                    onClick={() => logout()}
                     className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium w-full text-left"
                   >
                     Sign Out
-                  </a>
+                  </button>
                 </>
               ) : (
                 <>
