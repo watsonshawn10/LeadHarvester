@@ -15,8 +15,19 @@ export default function Navigation() {
     } catch (error) {
       // Force logout even if it fails
       console.log('Forcing logout due to error');
-      window.location.href = '/';
     }
+    
+    // Force clear everything
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear all cookies
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+    
+    // Force page reload to clear all state
+    window.location.href = '/auth';
     setMobileMenuOpen(false);
   };
 
