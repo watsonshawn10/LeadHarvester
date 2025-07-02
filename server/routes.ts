@@ -317,14 +317,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Logout handler function
   const handleLogout = async (req: any, res: any) => {
-    let redirectPath = '/'; // Default redirect
+    let redirectPath = '/auth'; // Default redirect to sign-in page
     
     // Get user preferences before destroying session
     if (req.session?.user) {
       try {
         const user = await storage.getUser(req.session.user.id);
         if (user?.logoutRedirectPreference) {
-          redirectPath = user.logoutRedirectPreference === 'login' ? '/auth' : '/';
+          redirectPath = user.logoutRedirectPreference === 'home' ? '/' : '/auth';
         }
       } catch (error) {
         console.error('Error fetching logout preferences:', error);

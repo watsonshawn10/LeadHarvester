@@ -193,6 +193,16 @@ TaskNab is a full-stack marketplace application that connects homeowners with ve
 - Improved navigation flow with prominent call-to-action buttons
 - Added visual progress indicators and status badges throughout dashboards
 
+✓ **User Preferences & Login/Logout Customization** (July 2, 2025)
+- Built comprehensive user preferences system with database schema updates
+- Added customizable login redirect options (dashboard, home, marketplace, last page)
+- Implemented logout redirect preferences with default to sign-in page for easy user switching
+- Created preferences page with settings for remember me defaults and session timeouts
+- Added auto-logout configuration with time-based controls
+- Integrated preferences navigation links in both desktop and mobile menus
+- Enhanced authentication flow to respect user-specific redirect preferences
+- Updated logout behavior to redirect to sign-in page by default instead of homepage
+
 ## Changelog
 ```
 Changelog:

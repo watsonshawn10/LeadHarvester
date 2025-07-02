@@ -69,18 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       queryClient.clear();
       // Clear any cached data and redirect based on user preference
-      const redirectPath = data?.redirectPath || '/';
+      const redirectPath = data?.redirectPath || '/auth';
       setTimeout(() => {
         window.location.href = redirectPath;
       }, 100);
     },
     onError: (error) => {
       console.error('Logout error:', error);
-      // Even if logout fails, clear local state and redirect
+      // Even if logout fails, clear local state and redirect to sign-in
       setUser(null);
       queryClient.clear();
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/auth';
       }, 100);
     },
   });

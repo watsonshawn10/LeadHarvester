@@ -180,7 +180,7 @@ export default function UserPreferences() {
               Logout Preferences
             </CardTitle>
             <CardDescription>
-              Configure how the app behaves when you log out.
+              Configure how the app behaves when you log out. Default is Login Page for easy user switching.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
