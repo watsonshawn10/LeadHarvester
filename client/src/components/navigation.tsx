@@ -7,12 +7,25 @@ import { useState } from 'react';
 // Global logout function
 (window as any).forceLogout = () => {
   console.log('Force logout called!');
+  
+  // Clear all storage
   localStorage.clear();
   sessionStorage.clear();
+  
+  // Clear all cookies
   document.cookie.split(";").forEach((c) => { 
     document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
   });
-  window.location.href = '/auth';
+  
+  console.log('Redirecting to home screen...');
+  
+  // Force navigation to home screen with multiple fallbacks
+  try {
+    window.location.replace('/');
+  } catch (e) {
+    console.log('Replace failed, trying href...');
+    window.location.href = '/';
+  }
 };
 
 export default function Navigation() {
