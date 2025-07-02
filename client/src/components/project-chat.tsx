@@ -135,17 +135,31 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
   // Load existing messages
   useEffect(() => {
     const loadMessages = async () => {
+      if (!user) {
+        console.log('No user authenticated, skipping message load');
+        return;
+      }
+
       try {
+        console.log(`Loading messages for project ${projectId}, receiverId: ${receiverId}`);
         const response = await fetch(`/api/messages/project/${projectId}`);
         if (response.ok) {
           const data = await response.json();
+          console.log('Fetched messages:', data);
+          
           // Filter messages based on receiverId for specific conversations
           // If receiverId is 0, show all messages for the project
           const filteredMessages = receiverId === 0 ? data : data.filter((msg: Message) => 
             (msg.senderId === user?.id && msg.receiverId === receiverId) ||
             (msg.senderId === receiverId && msg.receiverId === user?.id)
           );
+          console.log('Filtered messages:', filteredMessages);
           setMessages(filteredMessages);
+        } else {
+          console.error('Failed to fetch messages:', response.status, response.statusText);
+          if (response.status === 401) {
+            console.error('Authentication required to view messages');
+          }
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
@@ -280,6 +294,29 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
       projectId
     }));
   };
+
+  // Show authentication required message if user is not logged in
+  if (!user) {
+    return (
+      <Card className="h-[600px] flex flex-col">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <MessageSquare className="mr-2 h-5 w-5" />
+            Chat with {receiverName}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <MessageSquare className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-neutral-800 mb-2">Sign in required</h3>
+            <p className="text-neutral-600">
+              Please sign in to view and send messages.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="h-[600px] flex flex-col">
