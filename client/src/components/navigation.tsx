@@ -4,25 +4,21 @@ import { useAuth } from '@/lib/auth';
 import { Hammer, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
+// Global logout function
+(window as any).forceLogout = () => {
+  console.log('Force logout called!');
+  localStorage.clear();
+  sessionStorage.clear();
+  document.cookie.split(";").forEach((c) => { 
+    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+  });
+  window.location.href = '/auth';
+};
+
 export default function Navigation() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    // Force clear everything immediately
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Clear all cookies
-    document.cookie.split(";").forEach(function(c) { 
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    });
-    
-    // Force immediate page reload to auth page
-    window.location.href = '/auth';
-    setMobileMenuOpen(false);
-  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-50">
@@ -94,28 +90,7 @@ export default function Navigation() {
                   </Link>
                 )}
                 <button 
-                  onClick={(e) => {
-                    console.log('Logout button clicked!');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    try {
-                      console.log('Clearing storage...');
-                      localStorage.clear();
-                      sessionStorage.clear();
-                      
-                      console.log('Clearing cookies...');
-                      document.cookie.split(";").forEach(c => { 
-                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-                      });
-                      
-                      console.log('Redirecting to auth...');
-                      window.location.href = '/auth';
-                    } catch (error) {
-                      console.error('Logout error:', error);
-                      window.location.href = '/auth';
-                    }
-                  }} 
+                  onClick={() => (window as any).forceLogout()}
                   className="px-3 py-2 text-sm font-medium text-neutral-600 hover:text-primary"
                 >
                   Sign Out
@@ -185,14 +160,7 @@ export default function Navigation() {
                     </>
                   )}
                   <button
-                    onClick={() => {
-                      localStorage.clear();
-                      sessionStorage.clear();
-                      document.cookie.split(";").forEach(c => { 
-                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-                      });
-                      window.location.replace('/auth');
-                    }}
+                    onClick={() => (window as any).forceLogout()}
                     className="text-neutral-600 hover:text-primary block px-3 py-2 text-base font-medium w-full text-left"
                   >
                     Sign Out
