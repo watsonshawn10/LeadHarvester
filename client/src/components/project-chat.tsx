@@ -139,7 +139,13 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
         const response = await fetch(`/api/messages/project/${projectId}`);
         if (response.ok) {
           const data = await response.json();
-          setMessages(data);
+          // Filter messages based on receiverId for specific conversations
+          // If receiverId is 0, show all messages for the project
+          const filteredMessages = receiverId === 0 ? data : data.filter((msg: Message) => 
+            (msg.senderId === user?.id && msg.receiverId === receiverId) ||
+            (msg.senderId === receiverId && msg.receiverId === user?.id)
+          );
+          setMessages(filteredMessages);
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
@@ -147,16 +153,17 @@ export default function ProjectChat({ projectId, receiverId, receiverName }: Pro
     };
 
     loadMessages();
-  }, [projectId]);
+  }, [projectId, receiverId, user?.id]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !ws || !user) return;
 
+    // For general project chat (receiverId = 0), use a broadcast approach
     const messageData = {
       type: 'send_message',
       projectId,
       senderId: user.id,
-      receiverId,
+      receiverId: receiverId === 0 ? null : receiverId, // null for general project messages
       content: newMessage.trim(),
       messageType: 'text'
     };

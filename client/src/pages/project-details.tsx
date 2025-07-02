@@ -584,28 +584,32 @@ export default function ProjectDetails() {
                     receiverName="Homeowner"
                   />
                 )}
-                {user.userType === 'homeowner' && quotes && quotes.length > 0 && (
+                {user.userType === 'homeowner' && (
                   <div className="space-y-4">
-                    {quotes.map((quote) => (
-                      <ProjectChat 
-                        key={quote.id}
-                        projectId={project.id} 
-                        receiverId={quote.serviceProviderId} 
-                        receiverName={`Contractor (Quote: $${quote.amount})`}
-                      />
-                    ))}
+                    {/* Show general project chat for all conversations */}
+                    <ProjectChat 
+                      projectId={project.id} 
+                      receiverId={0} // Use 0 to indicate general project chat
+                      receiverName="Project Conversations"
+                    />
+                    
+                    {/* Show individual chats if there are quotes */}
+                    {quotes && quotes.length > 0 && (
+                      <div className="space-y-4 mt-6">
+                        <h3 className="text-lg font-semibold text-neutral-800 border-b pb-2">
+                          Conversations with Contractors
+                        </h3>
+                        {quotes.map((quote) => (
+                          <ProjectChat 
+                            key={quote.id}
+                            projectId={project.id} 
+                            receiverId={quote.serviceProviderId} 
+                            receiverName={`Contractor (Quote: $${quote.amount})`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-                {user.userType === 'homeowner' && (!quotes || quotes.length === 0) && (
-                  <Card>
-                    <CardContent className="text-center py-8">
-                      <MessageSquare className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-neutral-800 mb-2">No conversations yet</h3>
-                      <p className="text-neutral-600">
-                        Chat will be available once contractors submit quotes for your project.
-                      </p>
-                    </CardContent>
-                  </Card>
                 )}
               </TabsContent>
 
@@ -660,70 +664,68 @@ export default function ProjectDetails() {
               </CardContent>
             </Card>
 
-            {/* Messages */}
+            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <MessageSquare className="mr-2 h-5 w-5" />
-                  Messages
+                  Quick Actions
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
-                  {messagesLoading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="animate-pulse">
-                          <div className="h-4 bg-neutral-200 rounded w-3/4 mb-1"></div>
-                          <div className="h-3 bg-neutral-200 rounded w-1/2"></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : messages && messages.length > 0 ? (
-                    messages.map((message) => (
-                      <div key={message.id} className="p-3 bg-neutral-50 rounded-lg">
-                        <p className="text-sm text-neutral-700">{message.content}</p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                          {formatTimeAgo(message.createdAt)}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-neutral-500 text-center py-4">
-                      No messages yet
-                    </p>
-                  )}
-                </div>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-neutral-600 mb-4">
+                  Use the Chat tab above for real-time messaging with contractors.
+                </p>
+                {isProjectOwner && quotes && quotes.length > 0 && (
+                  <Button className="w-full" variant="outline">
+                    View All Quotes
+                  </Button>
+                )}
+                {user?.userType === 'service_provider' && canSubmitQuote && (
+                  <Button className="w-full bg-secondary text-white hover:bg-green-600">
+                    Submit Quote
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
 
-                <Form {...messageForm}>
-                  <form onSubmit={messageForm.handleSubmit(onSendMessage)} className="space-y-3">
-                    <FormField
-                      control={messageForm.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Type your message..."
-                              className="min-h-[80px] resize-none"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button 
-                      type="submit" 
-                      size="sm" 
-                      className="w-full"
-                      disabled={sendMessageMutation.isPending}
-                    >
-                      <Send className="mr-2 h-4 w-4" />
-                      {sendMessageMutation.isPending ? 'Sending...' : 'Send Message'}
-                    </Button>
-                  </form>
-                </Form>
+            {/* Contact Information */}
+            {quotes && quotes.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Contractors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {quotes.map((quote) => (
+                      <div key={quote.id} className="flex items-center justify-between p-2 bg-neutral-50 rounded">
+                        <span className="text-sm font-medium">Contractor</span>
+                        <Badge variant="outline">${quote.amount}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Project Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-600">Current Status:</span>
+                    <Badge className={getStatusColor(project.status)}>
+                      {getStatusLabel(project.status)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-600">Quotes Received:</span>
+                    <span className="font-medium">{quotes?.length || 0}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
