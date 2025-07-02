@@ -87,15 +87,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    // Force immediate logout - don't wait for server response
+    setUser(null);
+    queryClient.clear();
+    
+    // Clear all storage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear all cookies
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+    
+    // Try server logout in background (don't wait for it)
     try {
-      await logoutMutation.mutateAsync();
+      fetch('/api/auth/logout', { method: 'POST' });
     } catch (error) {
-      // Even if the server logout fails, clear local state
-      console.log('Logout error, clearing local state anyway');
-      setUser(null);
-      queryClient.clear();
-      window.location.href = '/';
+      console.log('Server logout failed, but local logout completed');
     }
+    
+    // Force immediate redirect
+    window.location.replace('/auth');
   };
 
   return (

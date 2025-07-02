@@ -10,24 +10,7 @@ export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      // Force logout even if it fails
-      console.log('Forcing logout due to error');
-    }
-    
-    // Force clear everything
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Clear all cookies
-    document.cookie.split(";").forEach(function(c) { 
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    });
-    
-    // Force page reload to clear all state
-    window.location.href = '/auth';
+    await logout();
     setMobileMenuOpen(false);
   };
 
