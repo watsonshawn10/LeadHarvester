@@ -6,7 +6,9 @@ interface AnalyticsChartProps {
 }
 
 export default function AnalyticsChart({ stats }: AnalyticsChartProps) {
-  const roi = stats.totalRevenue > 0 ? ((stats.totalRevenue - (stats.totalLeads * stats.avgLeadValue)) / (stats.totalLeads * stats.avgLeadValue)) * 100 : 0;
+  const totalInvestment = stats.totalLeads * stats.avgLeadValue;
+  const roi = totalInvestment > 0 ? ((stats.totalRevenue - totalInvestment) / totalInvestment) * 100 : 0;
+  const avgRevenuePerLead = stats.totalLeads > 0 ? stats.totalRevenue / stats.totalLeads : 0;
 
   return (
     <div className="space-y-6">
@@ -64,21 +66,58 @@ export default function AnalyticsChart({ stats }: AnalyticsChartProps) {
       {/* ROI Calculator */}
       <Card className="gradient-secondary text-white">
         <CardHeader>
-          <CardTitle className="text-white">ROI Calculator</CardTitle>
+          <CardTitle className="text-white">ROI Calculator & Performance</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold">${(stats.totalLeads * stats.avgLeadValue).toFixed(0)}</div>
-              <div className="text-sm text-green-100">Total Lead Investment</div>
+              <div className="text-2xl font-bold">${totalInvestment.toFixed(0)}</div>
+              <div className="text-sm text-green-100">Lead Investment</div>
+              <div className="text-xs text-green-200">${stats.avgLeadValue.toFixed(0)} per lead</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(0)}</div>
               <div className="text-sm text-green-100">Revenue Generated</div>
+              <div className="text-xs text-green-200">${avgRevenuePerLead.toFixed(0)} per lead</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">{roi.toFixed(0)}%</div>
+              <div className={`text-2xl font-bold ${roi >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                {roi >= 0 ? '+' : ''}{roi.toFixed(0)}%
+              </div>
               <div className="text-sm text-green-100">Return on Investment</div>
+              <div className="text-xs text-green-200">
+                {roi >= 0 ? 'Profitable' : 'Needs improvement'}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">${(stats.totalRevenue - totalInvestment).toFixed(0)}</div>
+              <div className="text-sm text-green-100">Net Profit</div>
+              <div className="text-xs text-green-200">
+                {stats.totalRevenue - totalInvestment >= 0 ? 'Positive' : 'Negative'}
+              </div>
+            </div>
+          </div>
+          
+          {/* ROI Insights */}
+          <div className="mt-6 p-4 bg-white/10 rounded-lg">
+            <h4 className="font-semibold text-white mb-2">Performance Insights</h4>
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-green-200">Cost per lead:</span>
+                <span className="text-white ml-2">${stats.avgLeadValue.toFixed(0)}</span>
+              </div>
+              <div>
+                <span className="text-green-200">Revenue per lead:</span>
+                <span className="text-white ml-2">${avgRevenuePerLead.toFixed(0)}</span>
+              </div>
+              <div>
+                <span className="text-green-200">Conversion rate:</span>
+                <span className="text-white ml-2">{stats.conversionRate}%</span>
+              </div>
+              <div>
+                <span className="text-green-200">Total leads:</span>
+                <span className="text-white ml-2">{stats.totalLeads}</span>
+              </div>
             </div>
           </div>
         </CardContent>
