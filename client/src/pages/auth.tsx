@@ -168,6 +168,41 @@ export default function Auth() {
                     </Button>
                   </form>
                 </Form>
+                
+                {/* Quick Test Buttons */}
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">Quick Test Login:</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await login('demo.homeowner@example.com', 'password');
+                        } catch (error) {
+                          toast({ title: "Login failed", description: "Please try again" });
+                        }
+                      }}
+                    >
+                      Login as Homeowner
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await login('demo.contractor@example.com', 'password');
+                        } catch (error) {
+                          toast({ title: "Login failed", description: "Please try again" });
+                        }
+                      }}
+                    >
+                      Login as Contractor
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="register" className="mt-6">
