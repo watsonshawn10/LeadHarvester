@@ -93,21 +93,33 @@ export default function Navigation() {
                     </Button>
                   </Link>
                 )}
-                <Button 
-                  onClick={() => {
-                    // Force immediate logout without waiting for anything
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    document.cookie.split(";").forEach(c => { 
-                      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-                    });
-                    window.location.replace('/auth');
+                <button 
+                  onClick={(e) => {
+                    console.log('Logout button clicked!');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    try {
+                      console.log('Clearing storage...');
+                      localStorage.clear();
+                      sessionStorage.clear();
+                      
+                      console.log('Clearing cookies...');
+                      document.cookie.split(";").forEach(c => { 
+                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                      });
+                      
+                      console.log('Redirecting to auth...');
+                      window.location.href = '/auth';
+                    } catch (error) {
+                      console.error('Logout error:', error);
+                      window.location.href = '/auth';
+                    }
                   }} 
-                  variant="ghost" 
-                  className="text-neutral-600 hover:text-primary"
+                  className="px-3 py-2 text-sm font-medium text-neutral-600 hover:text-primary"
                 >
                   Sign Out
-                </Button>
+                </button>
               </>
             ) : (
               <>
