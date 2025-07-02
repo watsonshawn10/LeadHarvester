@@ -291,20 +291,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/logout", (req, res) => {
+  // Logout handler function
+  const handleLogout = (req: any, res: any) => {
     if (req.session) {
-      req.session.destroy((err) => {
+      req.session.destroy((err: any) => {
         if (err) {
           console.error('Session destruction error:', err);
           return res.status(500).json({ message: 'Logout failed' });
         }
         res.clearCookie('connect.sid'); // Clear the session cookie
-        res.json({ success: true });
+        
+        // For GET requests, redirect to home page
+        if (req.method === 'GET') {
+          res.redirect('/');
+        } else {
+          res.json({ success: true });
+        }
       });
     } else {
-      res.json({ success: true });
+      // For GET requests, redirect to home page even if no session
+      if (req.method === 'GET') {
+        res.redirect('/');
+      } else {
+        res.json({ success: true });
+      }
     }
-  });
+  };
+
+  app.post("/api/auth/logout", handleLogout);
+  app.get("/api/auth/logout", handleLogout);
 
   app.get("/api/auth/me", (req, res) => {
     if (req.session?.user) {
